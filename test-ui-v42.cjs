@@ -18,7 +18,7 @@ assert.ok(!app.includes('Tu dinero en tres respuestas'));
 assert.ok(!app.includes('>Administrar suscripciones</button></div>'));
 assert.ok(app.includes('function enhanceAccountPickers'));
 assert.ok(app.includes("enhanceAccountPickers(modalInner)"));
-assert.ok(html.indexOf('account-picker.js')<html.indexOf('app.js?v=0.4.2'));
+assert.ok(html.indexOf('account-picker.js')<html.indexOf('app.js?v=0.4.3'));
 assert.ok(html.includes('account-picker.css'));
 assert.ok(css.includes('.ap-dialog'));
 const dashboard=fs.readFileSync(path.join(__dirname,'features/dashboard/dashboard.js'),'utf8');
