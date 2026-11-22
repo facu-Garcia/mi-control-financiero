@@ -65,7 +65,7 @@ for(const tab of ['flow','categories','wealth','credit']){
   assert.ok(!html.includes('undefined'));
 }
 assert.match(View.render(report,{...options,tab:'categories',category:'Compras'}),/Movimientos · Compras/);
-assert.match(View.render(report,{...options,tab:'categories',category:'Compras'}),/12\.00/);
+assert.match(View.render(report,{...options,tab:'categories',category:'Compras'}),/120\.00/);
 assert.match(View.render(credit,{...options,tab:'credit'}),/390\.00/);
 assert.match(View.render(report,{...options,tab:'wealth',metric:'netWorth'}),/Evolución del patrimonio/);
 const malicious=build({movements:[...moves,{id:'xss',type:'expense',accountId:'bank',date:'2026-11-12',category:'<img src=x onerror=alert(1)>',amount:100}]});
