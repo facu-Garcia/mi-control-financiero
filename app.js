@@ -12,8 +12,10 @@
   const Dash = window.FinanceDashboard;
   const Forms = window.FinanceForms;
   const AccountPicker = window.FinanceAccountPicker;
+  const Payroll = window.FinancePayroll;
+  const PayrollViews = window.FinancePayrollViews;
   const DB_NAME = 'mi-control-financiero-db';
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const accountTypes = {debit:'Cuenta de débito',credit:'Tarjeta de crédito',cash:'Efectivo',saving:'Ahorro',pocket:'Cajita / apartado'};
   const typeIcons = {debit:'▤',credit:'▰',cash:'▣',saving:'◇',pocket:'⬡'};
   const txNames = {expense:'Gasto',income:'Ingreso',transfer:'Transferencia',payment:'Pago de tarjeta',yield:'Rendimiento'};
@@ -26,14 +28,14 @@
   const modalInner = document.getElementById('modal-inner');
   const toastNode = document.getElementById('toast');
   let db;
-  let state = {accounts:[],movements:[],budgets:[],recurrences:[],reconciliations:[],audits:[],settings:{salary:0,savingsTarget:0}};
+  let state = {accounts:[],movements:[],budgets:[],recurrences:[],reconciliations:[],audits:[],payrollProfiles:[],settings:{salary:0,savingsTarget:0}};
   let drive;
   let driveInitError = '';
   let localInitError = '';
   let localInitStatus = 'iniciando';
   let localInitTask;
   let generatingDue=false;
-  let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null, insightKind='wealth', insightAccount='all';
+  let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null, insightKind='wealth', insightAccount='all', selectedPayrollAccount='';
 
   function localDate(offset=0){const d=new Date(); d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   function id(){return (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2));}
@@ -46,7 +48,7 @@
   function getAccount(aid){return F.accountById(state.accounts,aid);}
   function badgeFor(a){const t=bankThemes[String(a.institution||'').toLowerCase().trim()]||{color:'#395e79',label:(a.institution||a.name||'CT').slice(0,2).toUpperCase()};return t;}
   function cloudStatus(){return drive?.status||(driveInitError?'No disponible':'Sin configurar');}
-  function snapshot(){return {schemaVersion:3,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,recurrences:state.recurrences,reconciliations:state.reconciliations,audits:state.audits,settings:state.settings};}
+  function snapshot(){return {schemaVersion:4,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,recurrences:state.recurrences,reconciliations:state.reconciliations,audits:state.audits,payrollProfiles:state.payrollProfiles,settings:state.settings};}
   function afterChange(){drive?.markChanged();}
   function sortTx(list){return [...list].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));}
   function notify(msg){
@@ -90,7 +92,7 @@
     if(localInitStatus!=='listo'||!db)throw Error(localInitError||'No se pudo abrir IndexedDB.');
     notify('Base de datos local recuperada. Ya puedes intentar conectar Google Drive.');
   }
-  async function reload(){const [accounts,movements,budgets,settings,recurrences,reconciliations,audits]=await Promise.all([request('accounts','getAll'),request('movements','getAll'),request('budgets','getAll'),request('settings','get','preferences'),request('recurrences','getAll'),request('reconciliations','getAll'),request('audits','getAll')]);state={accounts,movements,budgets,recurrences,reconciliations,audits,settings:settings||{id:'preferences',salary:0,savingsTarget:0}};render();}
+  async function reload(){const [accounts,movements,budgets,settings,recurrences,reconciliations,audits,payrollProfiles]=await Promise.all([request('accounts','getAll'),request('movements','getAll'),request('budgets','getAll'),request('settings','get','preferences'),request('recurrences','getAll'),request('reconciliations','getAll'),request('audits','getAll'),request('payrollProfiles','getAll')]);state={accounts,movements,budgets,recurrences,reconciliations,audits,payrollProfiles,settings:settings||{id:'preferences',salary:0,savingsTarget:0}};render();}
   async function save(store,entry){await mutate(store,'put',entry);await reload();afterChange();}
   async function remove(store,identifier){await mutate(store,'delete',identifier);await reload();afterChange();}
   function header(title,detail=''){return `<div class="page-head"><div><div class="eyebrow">${esc(detail||'Tu centro financiero')}</div><h1>${esc(title)}</h1></div><input id="month-control" aria-label="Mes del reporte" type="month" class="month-control" value="${esc(selectedMonth)}"></div>`;}
@@ -109,6 +111,7 @@
     const name=m.description||(m.type==='expense'?m.category:txNames[m.type]);
     let sub=`${shortDate(m.date)} · ${esc(origin?.name||'Cuenta eliminada')} · ${esc(txNames[m.type])}`;
     if(dest)sub+=` → ${esc(dest.name)}`;
+    if(m.type==='income'&&Payroll.TYPES[m.payrollKind])sub+=` · ${esc(Payroll.TYPES[m.payrollKind])}`;
     if(m.type==='expense'&&origin?.type==='credit')sub+=` · Corte ${esc(monthName(F.statementOf(m.date,origin.cutDay)))}`;
     if(m.type==='expense'&&Number(m.months)>1)sub+=` · ${m.months} MSI`;
     const cls=m.type==='income'||m.type==='yield'?'positive':m.type==='expense'?'negative':'';
@@ -127,7 +130,7 @@
   }
   function renderAccounts(){
     const assets=state.accounts.filter(a=>a.type!=='credit'),cards=state.accounts.filter(a=>a.type==='credit');
-    main.innerHTML=header('Bancos y tarjetas','Todas tus cuentas')+`<div class="toolbar"><button class="primary small" data-action="add-account">＋ Agregar cuenta o tarjeta</button><button class="secondary small" data-action="import-accounts">⇧ Importar cuentas CSV</button></div>
+    main.innerHTML=header('Bancos y tarjetas','Todas tus cuentas')+`<div class="toolbar"><button class="primary small" data-action="add-account">＋ Agregar cuenta o tarjeta</button><button class="secondary small" data-action="import-accounts">⇧ Importar cuentas CSV</button><button class="secondary small" data-action="open-payroll">▤ Nómina</button></div>
       ${sectionTitle('Tus tarjetas visuales')}<div class="card-gallery">${state.accounts.filter(a=>['debit','credit'].includes(a.type)).map(a=>`<button class="card-button" data-action="account-detail" data-id="${esc(a.id)}">${cardTile(a)}<span class="card-button-caption"><span>${esc(a.name)}</span><span>${a.type==='credit'?'CRÉDITO':'DÉBITO'}</span></span></button>`).join('')||blank('Agrega tarjetas o importa tu CSV para mostrarlas aquí.')}</div>
       ${sectionTitle('Dinero, efectivo y cajitas')}<div class="panel">${accountList(assets)}</div>
       ${sectionTitle('Tarjetas de crédito')}<div class="panel">${cards.length?accountList(cards):blank('Agrega tus tarjetas para controlar cortes, saldos y MSI.')}</div>
@@ -135,7 +138,7 @@
   }
   function renderMovements(){
     const tx=monthlyTx().filter(m=>filter==='all'||m.type===filter);
-    main.innerHTML=header('Tus movimientos','Historial por mes financiero')+`<div class="toolbar"><button class="secondary small" data-action="import-movements">⇧ Importar movimientos CSV</button><button class="secondary small" data-action="show-audits">Historial de ediciones</button><button class="secondary small" data-action="open-recurring">Suscripciones</button></div><div class="pills">${[['all','Todos'],['expense','Gastos'],['income','Ingresos'],['payment','Pagos'],['transfer','Transferencias'],['yield','Rendimientos']].map(([v,label])=>`<button class="pill ${filter===v?'sel':''}" data-action="filter" data-filter="${v}">${label}</button>`).join('')}</div><div class="panel">${txList(tx,true)}</div><p class="footnote">Las compras de crédito se agrupan por el mes de corte. Transferencias, pagos y movimientos de débito se muestran por su fecha real.</p>`;
+    main.innerHTML=header('Tus movimientos','Historial por mes financiero')+`<div class="toolbar"><button class="secondary small" data-action="import-movements">⇧ Importar movimientos CSV</button><button class="secondary small" data-action="open-payroll">Nómina</button><button class="secondary small" data-action="show-audits">Historial de ediciones</button><button class="secondary small" data-action="open-recurring">Suscripciones</button></div><div class="pills">${[['all','Todos'],['expense','Gastos'],['income','Ingresos'],['payment','Pagos'],['transfer','Transferencias'],['yield','Rendimientos']].map(([v,label])=>`<button class="pill ${filter===v?'sel':''}" data-action="filter" data-filter="${v}">${label}</button>`).join('')}</div><div class="panel">${txList(tx,true)}</div><p class="footnote">Las compras de crédito se agrupan por el mes de corte. Transferencias, pagos y movimientos de débito se muestran por su fecha real.</p>`;
   }
   function renderReports(){
     const b=F.breakdown(state.accounts,state.movements,selectedMonth),catsList=Object.entries(b.byCat).sort((a,c)=>c[1]-a[1]);
@@ -165,6 +168,115 @@
   }
 
   // Dedicated recurring-payment workflow: no subscription changes alter confirmed balances.
+
+  function currentPayroll(){
+    return state.payrollProfiles.find(p=>p.accountId===selectedPayrollAccount)||
+      state.payrollProfiles[0]||null;
+  }
+  function renderPayroll(){
+    const profile=currentPayroll();
+    main.innerHTML=PayrollViews.page(profile,state.accounts,state.movements,selectedMonth,Payroll,money,esc,monthName);
+  }
+  function payrollConfig(){
+    const current=currentPayroll();
+    const debit=state.accounts.filter(a=>a.type==='debit');
+    if(!debit.length){notify('Primero registra una cuenta de débito para asignarle la nómina.');return;}
+    openModal('Configurar cuenta de nómina',PayrollViews.configForm(state.accounts,current,val,esc));
+    const form=document.getElementById('payroll-config-form');
+    if(!form)return;
+    function updateCadence(){
+      const monthly=form.elements.frequency.value==='monthly';
+      document.getElementById('p-day2-wrap').hidden=monthly;
+      form.elements.day2.required=!monthly;
+    }
+    form.elements.frequency.addEventListener('change',updateCadence);
+    updateCadence();
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();
+      try{
+        const f=e.currentTarget,accountId=f.elements.accountId.value;
+        const previous=state.payrollProfiles.find(p=>p.accountId===accountId);
+        const value={id:accountId,accountId,
+          frequency:f.elements.frequency.value,day1:Number(f.elements.day1.value),
+          day2:f.elements.frequency.value==='monthly'?31:Number(f.elements.day2.value),
+          expectedNet:cents(f.elements.expectedNet.value),
+          createdAt:previous?.createdAt||current?.createdAt||new Date().toISOString()};
+        Payroll.validate(value,state.accounts);
+        if(state.payrollProfiles.some(p=>p.accountId!==accountId)&&!previous){
+          if(!confirm('Ya hay otra cuenta configurada para nómina. Se conservarán los ingresos existentes, pero se reemplazará su calendario. ¿Continuar?'))return;
+        }
+        await new Promise((resolve,reject)=>{
+          const tx=db.transaction('payrollProfiles','readwrite');
+          tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('No se pudo guardar nómina'));
+          const store=tx.objectStore('payrollProfiles');
+          for(const p of state.payrollProfiles)if(p.id!==accountId)store.delete(p.id);
+          store.put(value);
+        });
+        selectedPayrollAccount=accountId;
+        closeModal();await reload();afterChange();navigate('payroll');
+        notify('Configuración de nómina guardada localmente.');
+      }catch(error){notify(error?.message||'No se pudo guardar la configuración.');}
+    });
+  }
+  function payrollReceive(payload={}){
+    const profile=currentPayroll();
+    const account=getAccount(profile?.accountId);
+    if(!profile||!account){notify('Configura primero tu cuenta de nómina.');return;}
+    const kind=Object.hasOwn(Payroll.TYPES,payload.kind)?payload.kind:'salary';
+    const key=kind==='salary'?String(payload.key||''):'';
+    if(key&&Payroll.receiptExists(key,state.movements)){notify('Esta quincena ya fue registrada. Puedes editar el movimiento existente.');return;}
+    const today=localDate();
+    const proposedDate=payload.date&&payload.date<=today?payload.date:today;
+    openModal('Registrar ingreso de nómina',PayrollViews.registerForm(account,profile,null,kind,kind,proposedDate,
+      kind==='salary'?profile.expectedNet:0,val,esc,Payroll.TYPES,state.accounts));
+    const form=document.getElementById('payroll-receipt-form');
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();
+      try{
+        const f=event.currentTarget,chosenKind=f.elements.kind.value,
+          accountId=f.elements.accountId.value,date=f.elements.date.value,amount=cents(f.elements.amount.value);
+        if(!Object.hasOwn(Payroll.TYPES,chosenKind))throw Error('Selecciona un concepto de nómina válido.');
+        if(!state.accounts.some(a=>a.id===accountId&&a.type==='debit'))throw Error('Elige una cuenta de débito.');
+        if(!Number.isSafeInteger(amount)||amount<=0)throw Error('El depósito debe ser mayor que cero.');
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>localDate())throw Error('Selecciona una fecha válida que no esté en el futuro.');
+        const recipient=getAccount(accountId);
+        if(date<=recipient.balanceDate){
+          throw Error('El ingreso es anterior o igual a la fecha de saldo inicial. Si ya estaba incluido en ese saldo, no lo registres dos veces; revisa la fecha base.');
+        }
+        const payrollKey=chosenKind==='salary'?key:'';
+        if(payrollKey&&Payroll.receiptExists(payrollKey,state.movements))throw Error('Ese pago de nómina ya está registrado.');
+        const movement={id:id(),type:'income',date,accountId,toAccountId:'',amount,
+          category:'Ingresos',description:f.elements.description.value.trim()||Payroll.TYPES[chosenKind],
+          months:1,payrollKind:chosenKind,payrollKey,createdAt:new Date().toISOString()};
+        await save('movements',movement);
+        closeModal();notify('Ingreso de nómina registrado y agregado al saldo de la cuenta.');
+      }catch(error){notify(error?.message||'No se pudo registrar el ingreso.');}
+    });
+  }
+
+  function payrollClassify(movementId){
+    const profile=currentPayroll(),m=state.movements.find(m=>m.id===movementId);
+    if(!profile||!m||m.type!=='income'||m.accountId!==profile.accountId||m.payrollKind){
+      notify('Selecciona un ingreso existente de la cuenta de nómina.');return;
+    }
+    openModal('Clasificar ingreso existente',PayrollViews.classifyForm(m,profile,Payroll,money,esc));
+    const f=document.getElementById('payroll-classify-form');
+    f.elements.kind.addEventListener('change',()=>{
+      document.getElementById('pc-slot-wrap').hidden=f.elements.kind.value!=='salary';
+    });
+    f.addEventListener('submit',async e=>{
+      e.preventDefault();
+      try{
+        const kind=f.elements.kind.value,key=kind==='salary'?f.elements.slot.value:'';
+        if(!Object.hasOwn(Payroll.TYPES,kind))throw Error('Concepto de nómina inválido.');
+        if(key&&!Payroll.due(profile,m.date.slice(0,7)).some(s=>s.key===key))throw Error('Quincena inválida.');
+        if(key&&Payroll.receiptExists(key,state.movements,m.id))throw Error('La quincena ya tiene un ingreso registrado.');
+        const updated={...m,payrollKind:kind,payrollKey:key};
+        await save('audits',{id:id(),movementId:m.id,date:new Date().toISOString(),before:m,after:updated});
+        await save('movements',updated);closeModal();notify('Ingreso clasificado sin volver a sumarlo.');
+      }catch(error){notify(error.message||'No se pudo clasificar el ingreso.');}
+    });
+  }
   function renderRecurrences(){
     main.innerHTML=Forms.recurringPage(state.recurrences,state.movements,getAccount,money,esc,selectedMonth);
   }
@@ -233,7 +345,7 @@
     enhanceAccountPickers(main);
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else if(page==='insight')renderInsight();else if(page==='recurrences')renderRecurrences();else renderReports();
+    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='payroll')renderPayroll();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else if(page==='insight')renderInsight();else if(page==='recurrences')renderRecurrences();else renderReports();
     enhanceAccountPickers(main);
   }
   function navigate(p){page=p;filter='all';render();window.scrollTo(0,0);}
@@ -305,6 +417,7 @@
     }catch(err){notify(err.message||'No se pudo guardar');}});
     if(existing)document.getElementById('delete-account-btn').addEventListener('click',async()=>{
       if(state.movements.some(m=>m.accountId===existing.id||m.toAccountId===existing.id)){notify('Elimina primero los movimientos vinculados a esta cuenta.');return;}
+      if(state.payrollProfiles.some(p=>p.accountId===existing.id)){notify('Esta cuenta tiene una nómina configurada. Cambia primero la cuenta de nómina.');return;}
       if(confirm('¿Eliminar esta cuenta?')){await remove('accounts',existing.id);closeModal();notify('Cuenta eliminada');}
     });
   }
@@ -355,7 +468,7 @@
       if(type==='payment'&&(!dest||dest.type!=='credit'||source.type==='credit'))throw Error('Elige una cuenta y una tarjeta de crédito.');
       if(type==='transfer'&&(!dest||dest.id===source.id||source.type==='credit'||dest.type==='credit'))throw Error('Elige dos cuentas distintas de dinero o ahorro.');
       const months=type==='expense'&&source.type==='credit'?Number(f.elements.months.value):1;
-      const movement={...(existing||{}),id:existing?.id||id(),type,date:f.elements.date.value,accountId,toAccountId:(type==='payment'||type==='transfer')?toAccountId:'',amount,category:type==='expense'?f.elements.category.value:type==='income'?'Ingresos':type==='yield'?'Rendimientos':'',description:f.elements.description.value.trim(),months,createdAt:existing?.createdAt||new Date().toISOString()};
+      const movement={...(existing||{}),id:existing?.id||id(),type,date:f.elements.date.value,accountId,toAccountId:(type==='payment'||type==='transfer')?toAccountId:'',amount,category:type==='expense'?f.elements.category.value:type==='income'?'Ingresos':type==='yield'?'Rendimientos':'',description:f.elements.description.value.trim(),months,payrollKind:type==='income'?String(existing?.payrollKind||''):'',payrollKey:type==='income'?String(existing?.payrollKey||''):'',createdAt:existing?.createdAt||new Date().toISOString()};
       if(existing){await save('audits',{id:id(),movementId:existing.id,date:new Date().toISOString(),before:existing,after:movement});}
       await save('movements',movement);closeModal();notify(existing?'Movimiento actualizado':'Movimiento registrado');
     }catch(err){notify(err.message||'No se pudo registrar el movimiento');}});
@@ -366,7 +479,7 @@
     const card=a.type==='credit';const breakdown=card?F.statementCharges(a,state.movements,selectedMonth):null;
     openModal(a.name,`${Cards.isCard(a)?'<div class="card-editor-preview" style="margin-bottom:16px">'+Cards.render(a)+'</div>':''}<div class="panel"><div class="eyebrow">${card?'Deuda estimada':'Saldo disponible estimado'}</div><div class="summary-figure">${money(balance)}</div><div class="help">Saldo base al cierre del ${shortDate(a.balanceDate)}: ${money(card?a.initialDebt:a.initialBalance)}</div>
       ${state.reconciliations.filter(r=>r.accountId===a.id).length?`<div class="report-line"><span>Última conciliación<br><small>${esc(state.reconciliations.filter(r=>r.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date))[0].date)}</small></span><b>${money(state.reconciliations.filter(r=>r.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date))[0].difference)} de diferencia</b></div>`:''}${card?`<div class="divider"></div><div class="report-line"><span>Límite de crédito</span><b>${money(a.creditLimit)}</b></div><div class="report-line"><span>Disponible aproximado</span><b>${a.creditLimit?money(a.creditLimit-balance):'Por configurar'}</b></div><div class="report-line"><span>Día de corte</span><b>${a.cutDay?esc(a.cutDay):'Por configurar'}</b></div><div class="report-line"><span>Día habitual de pago</span><b>${a.dueDay?esc(a.dueDay):'Por configurar'}</b></div><div class="report-line"><span>Cargos estimados del corte de ${esc(monthName(selectedMonth))}</span><b>${money(breakdown.total)}</b></div>`:''}</div>
-      ${sectionTitle('Movimientos relacionados')}<div class="panel">${txList(tx,true)}</div><div class="toolbar"><button class="secondary small" id="edit-account-btn">Editar cuenta / saldo inicial</button><button class="secondary small" data-action="account-move" data-id="${esc(a.id)}">Registrar movimiento</button><button class="secondary small" data-action="reconcile" data-id="${esc(a.id)}">Conciliar saldo</button></div>
+      ${sectionTitle('Movimientos relacionados')}<div class="panel">${txList(tx,true)}</div><div class="toolbar"><button class="secondary small" id="edit-account-btn">Editar cuenta / saldo inicial</button><button class="secondary small" data-action="account-move" data-id="${esc(a.id)}">Registrar movimiento</button><button class="secondary small" data-action="reconcile" data-id="${esc(a.id)}">Conciliar saldo</button>${a.type==='debit'?'<button class="secondary small" data-action="open-payroll">Nómina</button>':''}</div>
       <p class="footnote">Las compras anteriores a la fecha base aparecen en el historial, pero no modifican el saldo actual.</p>`);
     document.getElementById('edit-account-btn').addEventListener('click',()=>accountForm(a));
   }
@@ -451,7 +564,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.4.2 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.5.0 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -471,12 +584,12 @@
     notify('Cuentas exportadas. Las imágenes personalizadas quedan en el respaldo JSON.');
   }
   function exportBackup(){const payload={...snapshot(),exportedAt:new Date().toISOString()};downloadFile(`mis-finanzas-respaldo-${localDate()}.json`,JSON.stringify(payload,null,2),'application/json');notify('Respaldo exportado. Guárdalo en un lugar privado.');}
-  function exportReport(){const payload={...F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth),budgets:state.budgets.map(b=>({...b,accountName:b.accountId==='all'?'Todas las cuentas':getAccount(b.accountId)?.name||'',spent:budgetSpend(b)}))};downloadFile(`mi-informe-${selectedMonth}.json`,JSON.stringify(payload,null,2),'application/json');notify('Informe mensual exportado');}
-  function exportCsv(){const r=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth);const rows=[['fecha','mes_financiero','tipo','cuenta_origen','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI']];
-    for(const m of r.movements)rows.push([m.date,m.financialMonth,m.type,getAccount(m.accountId)?.name||'',getAccount(m.toAccountId)?.name||'',m.category||'',m.description||'',val(m.amount),m.months||1]);
+  function exportReport(){const payload={...F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth),payroll:state.payrollProfiles.length?{accountName:getAccount(state.payrollProfiles[0].accountId)?.name||'',totals:Payroll.incomeTotals(state.movements,state.payrollProfiles[0].accountId,selectedMonth)}:null,budgets:state.budgets.map(b=>({...b,accountName:b.accountId==='all'?'Todas las cuentas':getAccount(b.accountId)?.name||'',spent:budgetSpend(b)}))};downloadFile(`mi-informe-${selectedMonth}.json`,JSON.stringify(payload,null,2),'application/json');notify('Informe mensual exportado');}
+  function exportCsv(){const r=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth);const rows=[['fecha','mes_financiero','tipo','cuenta_origen','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI','concepto_nomina']];
+    for(const m of r.movements)rows.push([m.date,m.financialMonth,m.type,getAccount(m.accountId)?.name||'',getAccount(m.toAccountId)?.name||'',m.category||'',m.description||'',val(m.amount),m.months||1,Payroll.TYPES[m.payrollKind]||'']);
     const csv='\ufeff'+rows.map(row=>row.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadFile(`mis-movimientos-${selectedMonth}.csv`,csv,'text/csv;charset=utf-8');notify('CSV exportado');}
   function validatedBackup(x){
-    if(!x||x.kind!=='complete-backup'||![1,2,3].includes(x.schemaVersion)||!Array.isArray(x.accounts)||!Array.isArray(x.movements)||!x.settings||x.accounts.length>1000||x.movements.length>100000)throw Error('El archivo no es un respaldo compatible.');
+    if(!x||x.kind!=='complete-backup'||![1,2,3,4].includes(x.schemaVersion)||!Array.isArray(x.accounts)||!Array.isArray(x.movements)||!x.settings||x.accounts.length>1000||x.movements.length>100000)throw Error('El archivo no es un respaldo compatible.');
     const validId=s=>typeof s==='string'&&s.length>0&&s.length<=100;
     const validMoney=v=>Number.isSafeInteger(v)&&Math.abs(v)<=1e15;
     const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -491,7 +604,9 @@
       const dst=String(m.toAccountId||'');if((m.type==='transfer'||m.type==='payment')&&!idMap.has(dst))throw Error('Hay movimientos con destino inexistente.');
       return {id:m.id,type:m.type,date:m.date,accountId:m.accountId,toAccountId:dst,amount:m.amount,months:m.months,category:m.category,description:m.description,createdAt:String(m.createdAt||''),
         recurrenceId:String(m.recurrenceId||'').slice(0,100),recurrenceMonth:String(m.recurrenceMonth||'').slice(0,7),
-        autoGenerated:m.autoGenerated===true,confirmed:m.confirmed===true};
+        autoGenerated:m.autoGenerated===true,confirmed:m.confirmed===true,
+         payrollKind:m.type==='income'&&Object.hasOwn(Payroll.TYPES,m.payrollKind)?m.payrollKind:'',
+         payrollKey:m.type==='income'&&Object.hasOwn(Payroll.TYPES,m.payrollKind)?String(m.payrollKey||'').slice(0,120):''};
     });
     if(new Set(movements.map(m=>m.id)).size!==movements.length)throw Error('Hay movimientos duplicados.');
     const salary=x.settings.salary||0,target=x.settings.savingsTarget||0;
@@ -514,11 +629,28 @@
     const rawAudits=Array.isArray(x.audits)?x.audits:[];
     if(rawAudits.length>20000)throw Error('Demasiadas entradas de historial.');
     const audits=rawAudits.map(a=>{if(!validId(a.id)||!validId(a.movementId))throw Error('Auditoría inválida.');return {id:a.id,movementId:a.movementId,date:String(a.date||'').slice(0,40),before:a.before||null,after:a.after||null};});
-    return {accounts,movements,budgets,recurrences,reconciliations,audits,settings:{id:'preferences',salary,savingsTarget:target}};
+    const rawPayroll=Array.isArray(x.payrollProfiles)?x.payrollProfiles:[];
+    if(rawPayroll.length>10)throw Error('Demasiadas cuentas de nómina.');
+    const payrollProfiles=rawPayroll.map(p=>{
+      const profile={id:String(p.id||''),accountId:String(p.accountId||''),frequency:String(p.frequency||''),
+        day1:Number(p.day1),day2:Number(p.day2),expectedNet:p.expectedNet,
+        createdAt:String(p.createdAt||'').slice(0,40)};
+      Payroll.validate(profile,accounts);
+      return profile;
+    });
+    if(new Set(payrollProfiles.map(p=>p.accountId)).size!==payrollProfiles.length)throw Error('Hay cuentas de nómina duplicadas.');
+    if(payrollProfiles.length>1)throw Error('El respaldo contiene más de una cuenta de nómina principal.');
+    const payrollKeys=new Set();
+    for(const m of movements){
+      if(!m.payrollKey)continue;
+      if(payrollKeys.has(m.payrollKey))throw Error('Hay pagos de nómina duplicados.');
+      payrollKeys.add(m.payrollKey);
+    }
+    return {accounts,movements,budgets,recurrences,reconciliations,audits,payrollProfiles,settings:{id:'preferences',salary,savingsTarget:target}};
   }
-  async function replaceBackup(x){return new Promise((resolve,reject)=>{const tx=db.transaction(['accounts','movements','settings','budgets','recurrences','reconciliations','audits'],'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));
-    for(const storeName of ['accounts','movements','settings','budgets','recurrences','reconciliations','audits'])tx.objectStore(storeName).clear();
-    x.accounts.forEach(a=>tx.objectStore('accounts').put(a));x.movements.forEach(m=>tx.objectStore('movements').put(m));(x.budgets||[]).forEach(b=>tx.objectStore('budgets').put(b));(x.recurrences||[]).forEach(r=>tx.objectStore('recurrences').put(r));(x.reconciliations||[]).forEach(r=>tx.objectStore('reconciliations').put(r));(x.audits||[]).forEach(a=>tx.objectStore('audits').put(a));tx.objectStore('settings').put(x.settings);
+  async function replaceBackup(x){return new Promise((resolve,reject)=>{const tx=db.transaction(['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles'],'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));
+    for(const storeName of ['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles'])tx.objectStore(storeName).clear();
+    x.accounts.forEach(a=>tx.objectStore('accounts').put(a));x.movements.forEach(m=>tx.objectStore('movements').put(m));(x.budgets||[]).forEach(b=>tx.objectStore('budgets').put(b));(x.recurrences||[]).forEach(r=>tx.objectStore('recurrences').put(r));(x.reconciliations||[]).forEach(r=>tx.objectStore('reconciliations').put(r));(x.audits||[]).forEach(a=>tx.objectStore('audits').put(a));(x.payrollProfiles||[]).forEach(p=>tx.objectStore('payrollProfiles').put(p));tx.objectStore('settings').put(x.settings);
   });}
   async function importBackupFile(file){if(!file)return;if(file.size>15*1024*1024){notify('Archivo demasiado grande (máximo 15 MB).');return;}
     try{const x=validatedBackup(JSON.parse(await file.text()));
@@ -536,6 +668,11 @@
     const action=target.dataset.action;
     try{switch(action){case 'close':closeModal();break;
       case 'add-account':accountForm();break;case 'add-movement':movementForm();break;
+      case 'open-payroll':navigate('payroll');break;
+      case 'payroll-config':payrollConfig();break;
+      case 'payroll-receive':payrollReceive({date:target.dataset.date,key:target.dataset.key,kind:'salary'});break;
+      case 'payroll-extra':payrollReceive({kind:target.dataset.kind});break;
+      case 'payroll-classify':payrollClassify(target.dataset.id);break;
       case 'open-insight':insightKind=target.dataset.kind||'wealth';insightAccount='all';navigate('insight');break;
       case 'back-home':navigate('home');break;
       case 'open-recurring':navigate('recurrences');break;
@@ -575,8 +712,8 @@
   async function init(){
     localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker){
-        const missing=['Finance','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker'].filter(name=>!window[name]).join(', ');
+      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews){
+        const missing=['Finance','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews'].filter(name=>!window[name]).join(', ');
         throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
       }
       if(!db)db=await openDb();

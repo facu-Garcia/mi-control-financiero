@@ -1,3 +1,23 @@
+# Mi Control Financiero · PWA v0.5.0
+
+## Módulo privado de nómina
+1. Abre **Cuentas → Nómina** o **Movimientos → Nómina**.
+2. Selecciona la cuenta **de débito** donde recibes tu salario, ajusta si te pagan **quincenalmente** (dos días fijos por mes) o **mensualmente**, fija las fechas y el neto habitual **por pago**.
+3. Los pagos previstos son **proyecciones**, no ingresos reales ni movimientos en la cuenta. Presiona **Registrar** al recibir la quincena.
+4. Usa los botones de **Fondo de ahorro, Aguinaldo, Prima vacacional, Utilidades, Bono y Otros** para registrar ingresos realmente recibidos. Si el fondo de ahorro se retuvo de la quincena y aún no se deposita, NO registres ese monto como otro ingreso.
+5. Puedes clasificar depósitos ya existentes como conceptos de nómina sin duplicarlos.
+
+### Arquitectura
+- `features/payroll/payroll.js`: reglas y conceptos, cálculo de fechas de pago, asociación opcional, validación de datos y prevención de pagos duplicados.
+- `features/payroll/payroll-view.js`: pantallas y formularios.
+- `features/payroll/payroll.css`: estilos.
+- `storage.js`: nueva tienda IndexedDB `payrollProfiles` mediante migración no destructiva a v4.
+- `app.js`: orquesta flujo y respaldo JSON v4, compatible con lectura de v1/v2/v3. Drive sigue cifrando el contenido en su flujo existente.
+
+Los bancos predeterminados no quedan marcados como cuentas de nómina en el código público; tu elección se conserva solamente en datos privados del navegador o en tu respaldo cifrado de Google Drive. No borres los datos de Chrome al actualizar. Verifica tu respaldo antes de registrar operaciones importantes.
+
+---
+
 # Mi Control Financiero · PWA v0.4.3
 
 El indicador **Estimación para gastar** abre el detalle de Patrimonio, que desglosa dinero líquido, deuda de tarjetas y próximos pagos recurrentes conocidos. Es una referencia conservadora, no una cantidad garantizada; exige cuentas, deudas y movimientos al día.

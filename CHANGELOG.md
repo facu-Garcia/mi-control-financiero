@@ -1,5 +1,24 @@
 # Historial de cambios
 
+## [0.5.0] - 2026-11-21
+
+### Nómina privada
+- Asociar una cuenta de débito como cuenta de nómina, seleccionable desde la aplicación; ninguna institución se marca como nómina en el código público.
+- Configurar frecuencia quincenal (dos pagos por mes) o mensual, fechas habituales y pago neto estimado, todo en IndexedDB privado.
+- Mostrar calendario de pagos previstos y depósitos recibidos con cantidades separadas. Los depósitos previstos jamás modifican el balance.
+- Registrar ingresos efectivos de sueldo, fondo de ahorro recibido, aguinaldo, prima vacacional, utilidades, bono y otros conceptos.
+- Clasificar ingresos existentes con su concepto de nómina sin crear movimientos duplicados ni cambiar su saldo.
+- Evitar registrar dos veces una quincena ya vinculada con un identificador estable.
+- Añadir «Nómina» a Cuentas y Movimientos, y acceso desde el detalle de una cuenta de débito.
+- Los ingresos de nómina se contabilizan como ingresos normales en saldos y reportes; los conceptos se conservan en movimientos y exportaciones.
+
+### Seguridad y migración
+- Migrar IndexedDB de v3 a v4 agregando `payrollProfiles` sin borrar cuentas o movimientos.
+- Actualizar respaldo cifrado de Drive y exportación JSON a esquema v4; leer respaldos de versiones v1 a v3 como antes.
+- Guardar conceptuales de nómina en movimientos y configuración solo en IndexedDB/respaldos privados.
+- No contiene nombre de empleador, sueldo personal ni asignación privada de cuentas en el repositorio.
+
+
 ## [0.4.3] - 2026-11-21
 
 ### Claridad financiera
