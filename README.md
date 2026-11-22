@@ -1,3 +1,18 @@
+# Mi Control Financiero · PWA v0.4.2
+
+### Resumen más limpio
+Se conservan Patrimonio, Ingresos, Compras, Ahorros y Cargos como cantidades principales y botones. Se retiró «Tu dinero en tres respuestas» por redundante; en su lugar se muestra una banda compacta de **Disponible estimado para gastar** con acceso a su explicación. Las suscripciones se gestionan desde la página **Movimientos**, no desde el resumen.
+
+### Selector visual reusable
+- `features/ui/account-picker.js`: ventana adaptativa con búsqueda por nombre o banco, miniaturas de tarjetas, tipo de cuenta y selección accesible; está diseñada como mejora progresiva de los `select` existentes.
+- `features/ui/account-picker.css`: estilos visuales del selector, separados de reglas financieras.
+- Se integra en los formularios de movimientos, transferencias, límites y suscripciones, además de filtros de las gráficas. Los `select` internos continúan recibiendo el valor real y disparando `change` para conservar validaciones y cálculos.
+- Si el módulo no carga, no borres los datos del navegador: recarga y revisa el almacenamiento antes de intentar otra cosa.
+
+El disponible estimado no sustituye el saldo bancario ni equivale a una recomendación de gasto. No cambia los datos de las cuentas ni el respaldo de Google Drive.
+
+---
+
 # Mi Control Financiero · PWA v0.4.0
 
 ## Arquitectura v0.4.0 y protección de datos

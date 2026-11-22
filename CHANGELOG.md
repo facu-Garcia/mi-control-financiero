@@ -1,5 +1,17 @@
 # Historial de cambios
 
+## [0.4.2] - 2026-11-21
+
+### Diseño y experiencia
+- Conservar la prioridad de números grandes del resumen, sin añadir nuevos menús inferiores.
+- Reemplazar el bloque redundante «Tu dinero en tres respuestas» por una única cifra compacta de disponible estimado para gastar, enlazada al análisis de patrimonio.
+- El acceso de Suscripciones permanece en Movimientos, no en la pantalla principal.
+- Añadir un selector visual de cuentas y tarjetas reutilizable: tarjeta en miniatura con diseño del banco, nombre, tipo, búsqueda y selección por ventana emergente adaptable a Android.
+- Mantener los campos select originales como fuente de verdad de los formularios para evitar alterar cuentas, movimientos, límites y suscripciones.
+- Separar el selector en `features/ui/account-picker.js` y `features/ui/account-picker.css`, y los nuevos estilos del resumen en `features/dashboard/dashboard.css`.
+- No se modifican IndexedDB, reglas financieras, cifrado ni estructura de los respaldos.
+
+
 ## [0.4.1] - 2026-11-21
 
 ### Corregido

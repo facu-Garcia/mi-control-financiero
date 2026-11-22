@@ -28,6 +28,8 @@ jobs:
           node --check features/finance/recurring.js
           node --check features/finance/forms.js
           node --check features/dashboard/dashboard.js
+          node --check features/ui/account-picker.js
+          node --check test-ui-v42.cjs
           node --check test-finance-v4.cjs
           node --check csv.js
           node --check storage.js
@@ -49,3 +51,4 @@ jobs:
           node test-storage.cjs
           node test-cards.cjs
           node test-finance-v4.cjs
+          node test-ui-v42.cjs
