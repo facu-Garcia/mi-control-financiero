@@ -88,11 +88,10 @@
     }
     return items.map(x=>({...x,accountType:accounts.find(a=>a.id===x.accountId)?.type||''}));
   }
-  function upcomingPayments(data,deps,today,days=30){
-    if(!validDate(today))throw Error('Fecha inválida.');
-    if(!Number.isInteger(days)||days<1||days>90)throw Error('Horizonte inválido.');
-    const end=plusDays(today,days),tx=atDate(data.movements,today),cycles=list(data.billingCycles);
-    const items=[];let unknown=0;
+  function monthPayments(data,deps,month,today){
+    if(!MONTH.test(month)||!validDate(today))throw Error('Periodo inválido.');
+    const tx=atDate(data.movements,today),cycles=list(data.billingCycles),items=[];
+    let unknown=0;
     for(const card of list(data.accounts).filter(a=>a.type==='credit')){
       const effective=deps.Billing.effectiveCycles(card,cycles);
       for(const c of effective){
@@ -100,17 +99,46 @@
         const remaining=deps.Billing.officialRemaining(card,c,tx,effective);
         if(!Number.isSafeInteger(remaining)||remaining<=0)continue;
         if(!validDate(due)){unknown++;continue;}
-        if(due>end)continue;
+        if(due.slice(0,7)!==month)continue;
         const captured=cycles.some(saved=>saved.id===c.id&&saved.amountDue!=null);
         items.push({id:'due:'+c.id,date:due,kind:'card-payment',title:card.name,
           amount:remaining,cycleMonth:c.month,accountId:card.id,status:captured?'captured':'estimated',
-          overdue:due<today,detail:captured?'Importe del corte capturado':'Importe derivado del saldo inicial; verifica con tu banco'});
+          overdue:due<today,detail:captured?'Importe de corte capturado':'Saldo inicial estimado; verifica con tu banco'});
       }
-      // Deuda fuera de ciclos registrados o virtuales: no inventar una fecha de vencimiento.
       if(!effective.some(c=>c.amountDue!=null)&&deps.F.accountBalance(card,tx)>0)unknown++;
     }
     items.sort((a,b)=>a.date.localeCompare(b.date)||a.title.localeCompare(b.title));
-    return {end,items,unknown};
+    return {month,items,unknown};
+  }
+  function monthlyObligations(data,deps,month,today){
+    const payments=monthPayments(data,deps,month,today);
+    const recurringItems=occurrences(data,deps.Rec,month).filter(e=>e.accountType!=='credit'&&
+      (e.status==='pending'||e.status==='planned'&&e.date>=today));
+    return {payments:payments.items,recurringItems,
+      total:sum(payments.items)+sum(recurringItems),unknown:payments.unknown};
+  }
+  function upcomingPayments(data,deps,today,days=30){
+    if(!validDate(today))throw Error('Fecha inválida.');
+    if(!Number.isInteger(days)||days<1||days>90)throw Error('Horizonte inválido.');
+    const end=plusDays(today,days),items=[];let unknown=0;
+    // Fecha límite, no fecha de corte. Incluye compromisos atrasados aún abiertos.
+    const months=new Set();
+    for(const c of list(data.billingCycles)){if(c.dueDate&&c.dueDate<=end)months.add(c.dueDate.slice(0,7));}
+    for(let month=today.slice(0,7);month<=end.slice(0,7);month=deps.F.shiftMonth(month,1))months.add(month);
+    // También incluir vencidos anteriores de ciclos de deuda inicial.
+    for(const card of list(data.accounts).filter(a=>a.type==='credit')){
+      for(const c of deps.Billing.effectiveCycles(card,list(data.billingCycles))){
+        const due=c.dueDate||deps.Billing.due(card,c.month,list(data.billingCycles)).date;
+        if(due&&due<=end)months.add(due.slice(0,7));
+      }
+    }
+    for(const month of months){
+      const period=monthPayments(data,deps,month,today);
+      unknown=Math.max(unknown,period.unknown);
+      for(const p of period.items)if(p.date<=end)items.push(p);
+    }
+    const unique=[...new Map(items.map(p=>[p.id,p])).values()].sort((a,b)=>a.date.localeCompare(b.date));
+    return {end,items:unique,unknown};
   }
   function capacity(data,deps,today,days=30){
     if(!validDate(today))throw Error('Fecha inválida.');
@@ -140,5 +168,5 @@
       obligations:cardsDue+recurringDue,available:Math.max(0,rawAvailable),shortfall:Math.max(0,-rawAvailable),
       paymentItems:payments.items,recurringItems,warnings,unknownPayments:payments.unknown};
   }
-  return {plusDays,monthEnd,calendar,referenceEvents,occurrences,upcomingPayments,capacity};
+  return {plusDays,monthEnd,calendar,referenceEvents,occurrences,monthPayments,monthlyObligations,upcomingPayments,capacity};
 });
