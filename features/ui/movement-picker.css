@@ -1,0 +1,29 @@
+/* Selector táctil de movimientos y categorías, independiente del selector de cuentas. */
+.mp-native{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)!important}
+.mp-trigger{width:100%;min-height:66px;display:flex;align-items:center;gap:13px;padding:11px 13px;background:linear-gradient(145deg,#1b3149,#12253b);border:1px solid #47627b;border-radius:15px;color:#eff8ff;text-align:left;cursor:pointer}
+.mp-trigger:hover{border-color:#6fcfce}.mp-trigger:focus-visible{outline:3px solid #68ddc8;outline-offset:2px}
+.mp-trigger-icon,.mp-choice-icon{width:44px;height:44px;flex:none;display:grid;place-items:center;font-size:23px;background:#264862;border-radius:13px;color:#c9f6ff}
+.mp-tone-expense{background:#493345;color:#ffc0c6}.mp-tone-income{background:#254a46;color:#9cf2d6}.mp-tone-transfer{background:#303f67;color:#c0d5ff}.mp-tone-payment{background:#51432e;color:#ffe0aa}.mp-tone-yield{background:#324457;color:#c6e6ff}
+.mp-trigger-text,.mp-choice-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.mp-trigger-text b,.mp-choice-copy b{font-size:15px;font-weight:700}
+.mp-trigger-text small,.mp-choice-copy small{font-size:12px;line-height:1.35;color:#aec5d8}
+.mp-chevron{font-size:22px;line-height:1;color:#b8cbd9}
+.mp-dialog{position:fixed;inset:auto 0 0 0;margin:0 auto;width:min(100%,600px);max-width:100%;max-height:min(88dvh,820px);background:#102138;color:#f4f9ff;border:1px solid #4a7187;border-radius:24px 24px 0 0;box-shadow:0 -20px 75px #0008;overflow:hidden;padding:0}
+.mp-dialog::backdrop{background:#000a;backdrop-filter:blur(3px)}
+.mp-sheet{display:flex;flex-direction:column;max-height:min(88dvh,820px)}
+.mp-sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:20px 20px 12px}
+.mp-sheet-head small{font-size:10px;letter-spacing:.13em;color:#8dddd0;font-weight:700}
+.mp-sheet-head h2{font-size:20px;line-height:1.25;margin:6px 0 0}
+.mp-dismiss{width:38px;height:38px;flex:none;border-radius:50%;border:1px solid #55728a;background:#233a54;color:#fff;font-size:25px;line-height:1;cursor:pointer}
+.mp-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow:auto;overscroll-behavior:contain;padding:10px 16px 18px}
+.mp-option{min-width:0;min-height:105px;padding:13px;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;border:1px solid #354e68;background:#172e46;color:inherit;border-radius:16px;cursor:pointer}
+.mp-option.is-selected{border-color:#74dccc;background:#214657;box-shadow:inset 0 0 0 1px #74dccc}
+.mp-option:hover{border-color:#79c8d5}
+.mp-option:focus-visible{outline:3px solid #70dcc9;outline-offset:2px}
+.mp-choice-icon{width:39px;height:39px;font-size:21px;border-radius:11px}
+.mp-choice-copy b{font-size:14px}.mp-choice-copy small{font-size:11px;line-height:1.35}
+.mp-choice-check{position:absolute;right:11px;top:11px;color:#7dedd6;font-weight:800}
+.mp-footnote{padding:12px 18px calc(14px + env(safe-area-inset-bottom));margin:0;border-top:1px solid #34516a;text-align:center;font-size:11px;color:#a9c0d3}
+@media(min-width:700px){.mp-dialog{inset:0;margin:auto;border-radius:22px;max-height:80dvh}.mp-sheet{max-height:80dvh}}
+@media(max-width:350px){.mp-options{gap:7px;padding:8px}.mp-option{padding:10px;min-height:100px}.mp-sheet-head h2{font-size:18px}.mp-trigger-text b{font-size:14px}}
+@media(prefers-reduced-motion:no-preference){.mp-dialog{animation:mp-slide .18s ease-out}@keyframes mp-slide{from{transform:translateY(18px);opacity:.72}to{transform:translateY(0);opacity:1}}}

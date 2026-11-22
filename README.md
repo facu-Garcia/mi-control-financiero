@@ -1,3 +1,12 @@
+# Mi Control Financiero · v0.11.1 — Selectores visuales de movimientos
+
+- Selector de tipo de movimiento con iconos y descripción de cada operación.
+- Selector de categoría con iconos; aparece solo para gastos.
+- Los valores nativos siguen sincronizados: sin cambiar el esquema financiero ni los movimientos anteriores.
+- Ventanas táctiles para móvil, selección marcada, teclas y cierre accesible.
+
+---
+
 # Mi Control Financiero · v0.11.0 — Experiencia mensual
 
 - Inicio rediseñado con tres cifras prioritarias: dinero registrado, deuda total y patrimonio neto. Ahorro visible sin duplicarse en patrimonio.

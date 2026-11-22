@@ -181,6 +181,8 @@
     f.elements.type.value=existing?.type||preferredType;
     refreshType();
     if(existing){paymentAutoFill=false;f.elements.amount.value=val(existing.amount);f.elements.date.value=existing.date;f.elements.category.value=existing.category||'Otros';f.elements.description.value=existing.description||'';f.elements.months.value=String(existing.months||1);if(existing.toAccountId)f.elements.toAccountId.value=existing.toAccountId;}
+    // El componente visual sincroniza los <select> nativos para conservar las validaciones existentes.
+    if(typeof window!=='undefined')window.FinanceMovementPicker?.enhance(f);
     f.addEventListener('submit',async e=>{e.preventDefault();try{
       const type=f.elements.type.value,accountId=f.elements.accountId.value,toAccountId=f.elements.toAccountId.value;
       const source=getAccount(accountId),dest=getAccount(toAccountId),amount=cents(f.elements.amount.value);
