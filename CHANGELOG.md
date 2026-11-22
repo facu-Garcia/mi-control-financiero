@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.11.0] - 2026-11-22
+- Rediseño del inicio y navegación hacia Planear mi mes.
+- Plan mensual con ingresos reales frente a previstos, gastos, vencimientos y límites.
+- Saldos con fecha de referencia para evitar movimientos futuros en el dinero de hoy.
+- Ahorros visibles sin duplicar el patrimonio, y botón Registrar pago más preciso.
+
+
 ## [0.10.2] - 2026-11-22
 - Corregir etiqueta móvil del periodo y mostrar todas las cuentas del resumen.
 - Mostrar mes de corte financiero y fecha límite de pago sin duplicar importes.

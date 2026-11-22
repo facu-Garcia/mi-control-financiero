@@ -13,7 +13,9 @@ assert.ok(!P.optionMarkup({value:'new',label:'<img src=x onerror=alert(1)>'},[],
 const app=fs.readFileSync(path.join(__dirname,'app.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(__dirname,'features/ui/account-picker.css'),'utf8');
-assert.ok(app.includes('spendable-strip'));
+assert.ok(app.includes('home-balance'));
+assert.ok(app.includes('currentSavings()'));
+assert.ok(app.includes('Planear mi mes'));
 assert.ok(!app.includes('Tu dinero en tres respuestas'));
 assert.ok(!app.includes('>Administrar suscripciones</button></div>'));
 assert.ok(app.includes('function enhanceAccountPickers'));

@@ -40,4 +40,10 @@ assert.equal(F.totals(accounts,purchases).netWorth,100000-7000+200000-10000-3000
 const installmentSeries=Array.from({length:6},(_,i)=>F.installmentAmount(10001,6,i));
 assert.equal(installmentSeries.reduce((a,b)=>a+b),10001);
 assert.deepEqual(installmentSeries,[1667,1667,1667,1667,1667,1666]);
+assert.equal(F.accountBalanceAt(deb,purchases,'2026-11-20'),100000);
+assert.equal(F.accountBalanceAt(deb,purchases,'2026-11-21'),100000-7000+200000-10000-30000);
+const future={id:'future',type:'income',date:'2026-12-01',accountId:'bank',amount:500000};
+assert.equal(F.totalsAt([deb],[future],'2026-11-22').assets,100000);
+assert.equal(F.totalsAt([deb],[future],'2026-12-02').assets,600000);
+assert.equal(F.totalsAt([{...deb,balanceDate:'2026-12-01'}],[],'2026-11-22').excludedAccounts,1);
 console.log('✓ 26 pruebas de fechas, cortes, MSI, ahorros, saldos y flujos aprobadas');

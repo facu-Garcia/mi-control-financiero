@@ -41,6 +41,17 @@
     const baseline = account.type === 'credit' ? (account.initialDebt || 0) : (account.initialBalance || 0);
     return baseline + movements.reduce((sum, m) => sum + debitOrCreditImpact(account, m), 0);
   }
+  // Instantáneas a una fecha: lo que sucede mañana no cambia el saldo de hoy.
+  function accountBalanceAt(account,movements,asOf){
+    if(typeof asOf!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(asOf))throw Error('Fecha de consulta inválida.');
+    if(account.balanceDate>asOf)return null;
+    return accountBalance(account,(movements||[]).filter(m=>m.date<=asOf));
+  }
+  function totalsAt(accounts,movements,asOf){
+    if(typeof asOf!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(asOf))throw Error('Fecha de consulta inválida.');
+    const eligible=accounts.filter(a=>a.balanceDate<=asOf),real=(movements||[]).filter(m=>m.date<=asOf);
+    return {...totals(eligible,real),asOf,excludedAccounts:accounts.length-eligible.length};
+  }
   function totals(accounts, movements) {
     const assets = accounts.filter(a => a.type !== 'credit').reduce((s, a) => s + accountBalance(a, movements), 0);
     const debts = accounts.filter(a => a.type === 'credit').reduce((s, a) => s + accountBalance(a, movements), 0);
@@ -121,5 +132,5 @@
       futureInstallments:Array.from({length:6},(_,i)=>({month:shiftMonth(month,i+1),amount:monthlyInstallments(accounts,movements,shiftMonth(month,i+1),cycles,legacy)})),
       movements:included.map(m=>({...m,financialMonth:m.type==='expense'?monthlyPurchaseMonth(m,accountById(accounts,m.accountId),cycles):monthOf(m.date)}))};
   }
-  return {monthOf,shiftMonth,monthDiff,statementOf,accountById,accountBalance,totals,installmentAmount,breakdown,statementCharges,monthlyInstallments,monthlyPurchaseMonth,reportForMonth};
+  return {monthOf,shiftMonth,monthDiff,statementOf,accountById,accountBalance,accountBalanceAt,totals,totalsAt,installmentAmount,breakdown,statementCharges,monthlyInstallments,monthlyPurchaseMonth,reportForMonth};
 });

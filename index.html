@@ -9,8 +9,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" href="./assets/icon-192.png">
   <link rel="apple-touch-icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=0.10.2">
-  <link rel="stylesheet" href="./features/planning/planning.css?v=0.10.2">
+  <link rel="stylesheet" href="./styles.css?v=0.11.0">
+  <link rel="stylesheet" href="./features/planning/planning.css?v=0.11.0">
   <link rel="stylesheet" href="./features/dashboard/dashboard.css?v=0.6.0">
   <link rel="stylesheet" href="./features/payroll/payroll.css?v=0.5.0">
   <link rel="stylesheet" href="./features/cards/billing.css?v=0.7.3">
@@ -29,16 +29,16 @@
     <header class="topbar">
       <div class="brandmark" aria-hidden="true">◈</div>
       <div class="brandtext"><div class="brand">Mi Control <span>Financiero</span></div><div class="tagline">Tus finanzas, en un solo lugar</div></div>
-      <span id="cloud-chip" class="cloud-chip" aria-live="polite">☁ Sin conectar</span>
+      <span id="cloud-chip" class="cloud-chip" aria-live="polite" title="Los datos se guardan en este dispositivo; Google Drive es opcional">☁ Drive opcional</span>
       <button class="iconbtn" id="btn-settings" aria-label="Configuración y respaldos" title="Configuración">⚙</button>
     </header>
     <main id="main" tabindex="-1"></main>
     <button class="fab" id="fab-add" title="Registrar movimiento" aria-label="Registrar movimiento">＋</button>
     <nav class="bottom-nav" aria-label="Navegación principal">
-      <button data-page="home" class="nav-item active"><span class="nav-icon">⌂</span><span>Resumen</span></button>
+      <button data-page="home" class="nav-item active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
+      <button data-page="movements" class="nav-item"><span class="nav-icon">⇄</span><span>Actividad</span></button>
       <button data-page="accounts" class="nav-item"><span class="nav-icon">▤</span><span>Cuentas</span></button>
-      <button data-page="movements" class="nav-item"><span class="nav-icon">⇄</span><span>Movimientos</span></button>
-      <button data-page="budgets" class="nav-item"><span class="nav-icon">◎</span><span>Límites</span></button>
+      <button data-page="planning" class="nav-item"><span class="nav-icon">▦</span><span>Plan</span></button>
       <button data-page="reports" class="nav-item"><span class="nav-icon">▥</span><span>Informes</span></button>
     </nav>
   </div>
@@ -47,7 +47,7 @@
   <input type="file" id="import-accounts-file" accept="text/csv,.csv" hidden>
   <input type="file" id="import-movements-file" accept="text/csv,.csv" hidden>
   <div id="toast" aria-live="polite" role="status"></div>
-  <script src="./logic.js?v=0.8.0" defer></script>
+  <script src="./logic.js?v=0.11.0" defer></script>
   <script src="./csv.js?v=0.8.0" defer></script>
   <script src="./storage.js?v=0.9.2" defer></script>
   <script src="./card-designs.js?v=0.3.2" defer></script>
@@ -55,7 +55,7 @@
   <script src="./drive-sync.js?v=0.9.0" defer></script>
   <script src="./features/backup/backup-model.js?v=0.9.0" defer></script>
   <script src="https://accounts.google.com/gsi/client" async></script>
-  <script src="./features/finance/insights.js?v=0.7.0" defer></script>
+  <script src="./features/finance/insights.js?v=0.11.0" defer></script>
   <script src="./features/finance/recurring.js?v=0.4.0" defer></script>
   <script src="./features/finance/forms.js?v=0.9.2" defer></script>
   <script src="./features/dashboard/dashboard.js?v=0.7.3" defer></script>
@@ -67,10 +67,10 @@
   <script src="./features/savings/pockets.js?v=0.7.1" defer></script>
   <script src="./features/savings/pockets-view.js?v=0.7.0" defer></script>
   <script src="./features/accounts/account-page.js?v=0.8.1" defer></script>
-  <script src="./features/cards/credit-row.js?v=0.7.0" defer></script>
+  <script src="./features/cards/credit-row.js?v=0.11.0" defer></script>
   <script src="./features/finance/transaction-forms.js?v=0.9.1" defer></script>
-  <script src="./features/planning/planning.js?v=0.10.2" defer></script>
-  <script src="./features/planning/planning-view.js?v=0.10.2" defer></script>
-  <script src="./app.js?v=0.10.2" defer></script>
+  <script src="./features/planning/planning.js?v=0.11.0" defer></script>
+  <script src="./features/planning/planning-view.js?v=0.11.0" defer></script>
+  <script src="./app.js?v=0.11.0" defer></script>
 </body>
 </html>

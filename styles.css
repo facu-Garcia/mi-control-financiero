@@ -29,3 +29,40 @@
 .month-picker:focus-within{outline:2px solid #70dcca;outline-offset:2px}
 @media(max-width:520px){.month-picker-full{display:none}.month-picker-short{display:block}}
 @media(max-width:345px){.page-head h1{font-size:23px}.month-picker{flex-basis:106px;max-width:42%;font-size:11px}}
+
+/* Resumen v0.11: tres cifras esenciales y acciones claras */
+.home-balance{border:1px solid #416c80;border-radius:23px;padding:22px;background:linear-gradient(132deg,#143952,#112539);margin-bottom:10px}
+.home-eyebrow{color:#c2dbe7;font-size:13px}
+.home-total{font-size:clamp(30px,8vw,43px);font-weight:800;letter-spacing:-1.3px;line-height:1.15;margin:8px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.home-balance p{font-size:12px;color:#b2cadb;margin:0 0 18px}
+.home-balance-grid{border-top:1px solid #ffffff30;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.home-balance-grid button{background:#152d42;border:1px solid #38556b;border-radius:14px;text-align:left;padding:12px;color:var(--txt);min-width:0}
+.home-balance-grid small,.home-balance-grid strong{display:block}
+.home-balance-grid small{font-size:12px;color:#b4ccdd}
+.home-balance-grid strong{font-size:clamp(15px,4.7vw,22px);margin-top:6px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.home-status{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:11px;margin-bottom:12px}
+.home-status button{background:transparent;border:0;color:var(--blue);font-size:12px;font-weight:700}
+.home-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.home-quick button{background:#203b52;border:1px solid #466b82;border-radius:13px;color:#eef9ff;padding:13px 7px;font-weight:700;font-size:13px;min-height:48px}
+.home-quick button:last-child{background:linear-gradient(110deg,#76caf2,#62d9c6);color:#102e3d;border:0}
+.home-savings{display:flex;justify-content:space-between;align-items:center;gap:15px;border:1px solid var(--line);background:var(--surface);padding:17px;border-radius:17px}
+.home-savings>div{display:flex;flex-direction:column;gap:3px}
+.home-savings small,.home-savings span{color:var(--muted);font-size:11px}
+.home-savings strong{font-size:23px;font-variant-numeric:tabular-nums}
+.home-savings button{color:#82c7ed;border:0;background:transparent;font-weight:700;font-size:12px;flex:none}
+.home-upcoming{padding-top:5px;padding-bottom:5px}
+.home-upcoming-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.home-upcoming-row:last-child{border:0}
+.home-upcoming-row>div{display:flex;flex-direction:column;min-width:0;gap:3px}
+.home-upcoming-row b{font-size:14px}
+.home-upcoming-row small{font-size:11px;color:var(--muted)}
+.home-upcoming-row strong{font-size:14px;white-space:nowrap}
+.home-month-note{margin:13px 0;border:1px solid var(--line);border-radius:15px;padding:15px;background:#13263a}
+.home-month-note>b{font-size:14px}
+.home-month-note>div{display:flex;justify-content:space-between;font-size:12px;gap:10px;margin-top:10px}
+.home-month-note span{color:var(--muted)}
+.home-month-note strong{font-size:14px}
+.account-row .row-title{font-size:14px}
+.account-row .row-sub{font-size:12px}
+button:focus-visible,[role=button]:focus-visible{outline:3px solid #67decc;outline-offset:3px}
+@media(max-width:360px){.home-balance{padding:17px}.home-savings{align-items:flex-start;flex-direction:column}.home-savings button{padding:0}.home-upcoming-row{flex-wrap:wrap}}
