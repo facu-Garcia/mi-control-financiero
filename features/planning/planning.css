@@ -1,17 +1,42 @@
-/* Calendario financiero, diseño compacto para móvil */
-.planning-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.planning-capacity{display:flex;flex-direction:column;gap:4px;padding:6px 0 12px}
-.planning-capacity>strong{font-size:clamp(1.65rem,6vw,2.2rem);letter-spacing:-.04em}
-.planning-capacity small{font-size:.8rem}
-.planning-events{display:grid;gap:12px}
-.planning-day{padding:12px 14px;border:1px solid var(--border,#263243);border-radius:15px;background:var(--panel,#121b2a)}
-.planning-day h3{font-size:.87rem;letter-spacing:.02em;margin:0 0 10px;color:var(--muted,#a9b6ca)}
-.planning-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid rgba(160,180,208,.12)}
-.planning-entry-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
-.planning-entry-copy b{font-size:.93rem;overflow-wrap:anywhere}
-.planning-entry-copy small{font-size:.77rem;line-height:1.45;opacity:.76}
-.planning-entry strong{font-size:.94rem;white-space:nowrap}
-.planning-income strong{color:#67dec0}
-.planning-expense strong{color:#f3bf78}
-.planning-info strong{color:#aabbd0}
-@media(max-width:380px){.planning-entry{align-items:flex-start;flex-direction:column;gap:5px}.planning-entry strong{align-self:flex-end}}
+/* Agenda v0.10.1: distinguir hechos, vencimientos y referencias sin saturar el móvil. */
+.agenda-head{margin:10px 0 16px}
+.agenda-head h1{font-size:clamp(1.5rem,5.5vw,2rem);line-height:1.15;letter-spacing:-.04em;margin:5px 0 17px}
+.agenda-month{display:flex;align-items:center;flex-wrap:wrap;gap:8px 13px;border-radius:15px;padding:13px 15px;background:var(--surface);border:1px solid var(--line)}
+.agenda-month strong{font-size:1.04rem;flex:1 1 150px;white-space:nowrap}
+.agenda-month label{font-size:.8rem;color:var(--muted)}
+.agenda-month input[type=month]{display:block;flex:1 1 160px;min-width:150px;max-width:100%;width:auto;padding:9px 10px;border:1px solid #3b536d;border-radius:10px;background:#0c192c;color:var(--txt);font-size:.88rem;color-scheme:dark}
+.planning-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.agenda-panel{margin-bottom:13px;padding:15px}
+.agenda-section-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:11px}
+.agenda-section-head h2{margin:0;font-size:1rem;line-height:1.35}
+.agenda-section-head span{font-size:.8rem;color:var(--muted)}
+.agenda-entry{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.agenda-entry-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.agenda-entry-copy b{font-size:.88rem;overflow-wrap:anywhere}
+.agenda-entry-copy small{font-size:.75rem;color:var(--muted);overflow-wrap:anywhere}
+.agenda-entry strong{font-size:.88rem;white-space:nowrap;flex-shrink:0}
+.agenda-estimate{color:var(--muted);font-size:.75rem;text-align:right}
+.agenda-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0 14px}
+.agenda-total span{font-size:.75rem;color:var(--muted)}
+.agenda-total strong{font-size:1.35rem}
+.agenda-summary{display:grid;gap:9px;margin:15px 0}
+.agenda-summary>div{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.agenda-summary small{font-size:.78rem;color:var(--muted)}
+.agenda-summary b{font-size:.85rem;white-space:nowrap}
+.agenda-available{padding:12px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.agenda-available span{font-size:.85rem;font-weight:700}
+.agenda-available strong{font-size:1.5rem;color:var(--teal)}
+.agenda-shortfall{color:var(--gold);font-size:.82rem}
+.agenda-subtitle{margin:22px 0 7px;font-size:.9rem}
+.agenda-references{margin:15px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.agenda-references summary{cursor:pointer;font-size:.85rem}
+.agenda-references .inline-note{margin-top:12px}
+body:has(.agenda-head) #fab-add{bottom:calc(112px + env(safe-area-inset-bottom));width:48px;height:48px;font-size:26px;opacity:.87}
+@media(max-width:440px){
+  .agenda-month{align-items:stretch;flex-direction:column;gap:5px}
+  .agenda-month strong{flex:auto}
+  .agenda-month label{margin-top:5px}
+  .agenda-month input[type=month]{flex:none;width:100%;max-width:100%;min-width:0}
+  .agenda-entry{flex-direction:column;gap:5px}
+  .agenda-entry strong{align-self:flex-end}
+}
