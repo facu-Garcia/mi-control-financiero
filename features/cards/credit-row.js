@@ -15,7 +15,7 @@
      <div><small>Fecha límite</small><b>${E(due||'Por confirmar')}</b></div>
      <div><small>Próximo corte</small><b>${E(cut?.date||'Por configurar')}</b></div></div>
      <div class="credit-compact-actions"><button type="button" class="secondary small" data-action="account-detail" data-id="${E(card.id)}">Ver detalle</button>
-      <button type="button" class="primary small" data-action="pay-card" data-id="${E(card.id)}">Pagar</button></div>
+      <button type="button" class="primary small" data-action="pay-card" data-id="${E(card.id)}">Registrar pago</button></div>
     </div>`;
  }
  return {render};
