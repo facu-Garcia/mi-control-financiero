@@ -8,6 +8,7 @@
   }
   function line(items,format,escape){
     if(!items.length)return '';
+    if(items.length===1)return `<div class="viz-single"><span>${escape(items[0].name)}</span><strong>${format(items[0].value)}</strong><small>Solo hay un mes disponible; registra más periodos para ver la evolución.</small></div>`;
     const vals=items.map(x=>x.value),min=Math.min(0,...vals),max=Math.max(1,...vals),span=Math.max(1,max-min);
     const coords=items.map((x,i)=>[8+84*i/Math.max(1,items.length-1),88-76*(x.value-min)/span]);
     return `<div class="viz-line"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Evolución de los últimos seis meses"><polyline points="${coords.map(p=>p.map(x=>x.toFixed(2)).join(',')).join(' ')}" stroke="#48d8c1" fill="none" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg><div class="viz-axis">${items.map(x=>`<div><small>${escape(x.name)}</small><b>${format(x.value)}</b></div>`).join('')}</div></div>`;
@@ -17,8 +18,8 @@
     const chosen=accountId==='all'?accounts:accounts.filter(a=>a.id===accountId);
     const ids=new Set(chosen.map(a=>a.id));
     const active=movements.filter(m=>I.active(m)&&(accountId==='all'||ids.has(m.accountId)||ids.has(m.toAccountId)));
-    const b=F.breakdown(chosen,active,month),t=F.totals(chosen,active);
-    const series=I.monthlySeries(F,chosen,active,month,6);
+    const b=F.breakdown(chosen,active,month,opt.cycles||[]),t=F.totals(chosen,active);
+    const series=I.monthlySeries(F,chosen,active,month,6,opt.cycles||[]);
     const plot=(title,content)=>`<section class="panel viz-section"><h2>${title}</h2>${content}</section>`;
     const months=series.map(x=>({name:monthName(x.month).split(' ')[0].slice(0,3),value:kind==='income'?x.income:x.purchases}));
     let body='';
@@ -39,11 +40,13 @@
       body=plot('Compras atribuidas: '+M(b.purchases),bars(months,M,E))+plot('Por categoría',bars(Object.entries(b.byCat).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value),M,E));
     }else if(kind==='savings'){
       const savings=chosen.filter(a=>a.type==='saving'||a.type==='pocket').map(a=>({name:a.name,value:F.accountBalance(a,active)}));
-      body=plot('Ahorro total: '+M(savings.reduce((s,a)=>s+a.value,0)),bars(savings,M,E))+'<p class="footnote">Transferir entre tus cuentas no es un gasto ni un ingreso.</p>';
+      body='<div class="savings-actions"><button class="primary small" data-action="savings-create">＋ Nueva cajita</button><button class="secondary small" data-action="savings-transfer">⇄ Apartar dinero</button><button class="secondary small" data-action="savings-yield">✧ Rendimiento</button></div>'+
+      plot('Ahorro total: '+M(savings.reduce((sum,a)=>sum+a.value,0)),bars(savings,M,E))+
+      '<p class="savings-explain">Para comenzar, crea una cuenta de tipo Cajita o Ahorro. Para apartar dinero elige Transferencia desde tu débito hacia esa cajita: no es gasto ni ingreso. Para intereses depositados usa Rendimiento.</p>';
     }else{
-      const credit=chosen.filter(a=>a.type==='credit'),charges=credit.map(a=>({name:a.name,value:F.statementCharges(a,active,month).total}));
-      const future=Array.from({length:6},(_,i)=>{const m=F.shiftMonth(month,i+1);return {name:monthName(m),value:F.monthlyInstallments(credit,active,m)}});
-      body=plot('Cargos del corte: '+M(charges.reduce((s,a)=>s+a.value,0)),bars(charges,M,E))+plot('Mensualidades futuras',bars(future,M,E))+'<p class="footnote">Los cargos estimados no equivalen necesariamente al pago exigible por el banco.</p>';
+      const credit=chosen.filter(a=>a.type==='credit'),charges=credit.map(a=>({name:a.name,value:F.statementCharges(a,active,month,opt.cycles||[],opt.legacy||[]).total}));
+      const future=Array.from({length:6},(_,i)=>{const m=F.shiftMonth(month,i+1);return {name:monthName(m),value:F.monthlyInstallments(credit,active,m,opt.cycles||[],opt.legacy||[])}});
+      body='<div class="toolbar"><button class="secondary small" data-action="back-accounts">Ver tarjetas y fechas de pago</button></div>'+plot('Cargos del corte: '+M(charges.reduce((s,a)=>s+a.value,0)),bars(charges,M,E))+plot('Mensualidades futuras',bars(future,M,E))+'<p class="footnote">Los cargos estimados no equivalen necesariamente al pago exigible por el banco.</p>';
     }
     const def=definitions[kind]||definitions.wealth;
     return `<div class="page-head"><div><div class="eyebrow">${E(def[1])}</div><h1>${E(def[0])}</h1></div><input id="month-control" type="month" class="month-control" value="${E(month)}" aria-label="Mes del informe"></div>

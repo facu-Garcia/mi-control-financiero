@@ -8,3 +8,7 @@
 .spendable-strip strong{color:#64d9c1;font-size:25px;line-height:1.25;font-variant-numeric:tabular-nums}
 .spendable-strip small{color:#98b2c7;font-size:11px;line-height:1.5}
 .spendable-arrow{color:#83d5c5;font-size:34px;line-height:1;flex:none}
+
+/* Avoid a 170px empty SVG when only one month has reliable historical data. */
+.viz-single{display:flex;flex-direction:column;gap:7px;padding:14px 12px;border-radius:12px;background:#1a2e45;color:#d6e8f7}
+.viz-single>span{font-size:12px;color:#98b7ca}.viz-single>strong{font-size:24px;font-variant-numeric:tabular-nums}.viz-single>small{font-size:11px;color:#91acbf}

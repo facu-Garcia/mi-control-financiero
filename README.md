@@ -1,3 +1,33 @@
+# Mi Control Financiero · PWA v0.6.0
+
+## Cortes bancarios reales, pagos y MSI anteriores
+- Abre **Cuentas → tarjeta de crédito → Cortes y mensualidades** o las nuevas alertas del **Resumen**.
+- Registra el **mes**, la **fecha real de corte**, la **fecha límite de pago** y, opcionalmente, el **monto oficial** que informa el banco.
+- La fecha real prevalece sobre el día de corte habitual para ese mes. Las fechas estimadas quedan etiquetadas como tales.
+- Las alertas del inicio muestran el siguiente corte y, si existe un monto oficial del estado de cuenta, el saldo restante orientativo y el tiempo al vencimiento.
+- **Pagar tarjeta** abre el formulario con la deuda total estimada precargada. Usa **Pago oficial del corte** para sugerir el importe confirmado; ambos montos se pueden modificar antes de registrar.
+- Para gastos a MSI que empezaron antes de usar la app, abre **Cortes y mensualidades → Agregar mensualidad**. Indica el monto mensual y el primer/último mes que aún falta pagar. Es un compromiso proyectado, no una nueva compra.
+- **La deuda inicial debe reflejar TODO lo que efectivamente debes en la fecha base, incluidos MSI pendientes.** Las mensualidades anteriores no incrementan esa deuda: solo distribuyen pagos previstos, evitando doble contabilización.
+- El importe oficial es el que te presenta el banco; las estimaciones de cargos no lo sustituyen y podrían omitir ajustes, intereses, abonos y compras históricas. Los pagos parciales se estiman por fecha y conviene cotejarlos con el banco.
+
+## Cómo usar Ahorros
+1. En **Cuentas → Nueva cajita o ahorro** crea una cuenta tipo **Cajita/Apartado** o **Ahorro** con su saldo inicial si ya tenías fondos.
+2. Para apartar dinero usa **Transferencia** desde débito hacia tu cajita. No se cuenta como gasto, solamente traslada dinero entre saldos.
+3. Para agregar intereses o rendimiento recibido selecciona **Rendimiento** sobre esa cuenta. Estos importes sí son ganancias.
+4. Desde la pantalla **Ahorros** del resumen existen accesos directos a estas acciones.
+
+## Arquitectura y protección de datos
+- `features/cards/billing.js`: fechas variables, obligaciones bancarias reales, MSI heredadas y vencimientos.
+- `features/cards/billing-view.js`: formularios y alertas por institución.
+- `features/cards/billing.css`: estilos exclusivos de tarjetas.
+- `logic.js`: incorpora corte real opcional en la asignación por mes y mensualidades heredadas sin alterar saldos.
+- `storage.js`: nueva versión local IndexedDB v5, sin eliminar tablas antiguas.
+- Respaldo v5 preserva cortes y compromisos personales cifrados en Drive. **No se registran fechas de corte ni importes reales en el repositorio público.**
+
+Antes de ingresar movimientos nuevos, exporta un JSON y verifica que el respaldo de Google Drive esté actualizado. No borres almacenamiento del navegador ni reinstales la PWA para forzar actualizaciones.
+
+---
+
 # Mi Control Financiero · PWA v0.5.1
 
 El importe neto previsto por pago de la cuenta de nómina ahora alimenta el salario previsto mensual en el Resumen e Informes: dos pagos para calendario quincenal o uno mensual. Si el importe previsto de nómina es cero, permanece el importe general de Ajustes. Esto no crea ningún movimiento.

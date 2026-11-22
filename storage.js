@@ -4,7 +4,7 @@
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.FinanceStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this,()=>{
-  const stores=['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles'];
+  const stores=['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles','billingCycles','legacyInstallments'];
   function openDatabase(name,version,options={}){
     return new Promise((resolve,reject)=>{
       let ended=false,blocked=false,request,timer;

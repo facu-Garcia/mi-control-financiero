@@ -1,5 +1,25 @@
 # Historial de cambios
 
+## [0.6.0] - 2026-11-21
+
+### Tarjetas de crédito y fechas reales
+- Configurar fecha de corte y vencimiento exactos para cada mes y tarjeta, con importe del estado de cuenta confirmado por el usuario.
+- Mantener el día habitual como una previsión, claramente diferenciado de fechas confirmadas.
+- Priorizar fecha del corte real en la asignación financiera de nuevas compras a crédito y proyecciones a MSI.
+- Mostrar próximas fechas de corte, pagos confirmados y estimaciones de deuda en Resumen, Cuentas y detalle de cada tarjeta.
+- Preseleccionar toda la deuda estimada al registrar un pago a crédito, con elección alternativa de pago oficial del corte.
+- Registrar mensualidades de compras anteriores al inicio del seguimiento, por periodo e importe fijo, sin crear compras pasadas ni aumentar la deuda existente.
+- Incluir esos compromisos en MSI estimadas e informe mensual, pero mantenerlos fuera de gastos del mes y patrimonio.
+- Crear accesos para abrir cajitas, transferir ahorro y registrar rendimientos.
+- Corregir visualización excesivamente vacía de la gráfica patrimonial con un único mes.
+- Mejorar separación modular: `features/cards/billing.js` para reglas, `billing-view.js` para vistas y `billing.css` para estilo.
+
+### Datos y seguridad
+- Migración no destructiva de IndexedDB v4 a v5 agregando `billingCycles` y `legacyInstallments`.
+- Respaldo JSON/Drive cifrado v5 con lectura compatible de versiones anteriores, sin subir datos de tarjetas a GitHub.
+- Las fechas, importes de estados de cuenta y compromisos no alteran los saldos reales; los movimientos confirmados mantienen el libro contable.
+
+
 ## [0.5.1] - 2026-11-21
 - La previsión mensual de nómina se deriva automáticamente del importe por quincena multiplicado por dos, o del importe mensual, cuando la cuenta de nómina está configurada con un monto.
 - Al registrar un pago se detecta un ingreso existente con misma fecha, cuenta e importe sin clasificación de nómina y se sugiere clasificarlo para no duplicar dinero.

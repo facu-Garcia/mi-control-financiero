@@ -1,0 +1,13 @@
+/* Credit-card cycles and legacy commitments: UI-only styles. */
+.billing-alerts{display:grid;gap:12px;margin:10px 0 17px}.billing-alert{background:linear-gradient(135deg,#162a40,#122034);border:1px solid #36506a;border-radius:17px;padding:15px 14px}
+.billing-alert-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.billing-alert-head b{font-size:14px}
+.billing-pills{display:flex;flex-wrap:wrap;gap:8px}.billing-chip{display:grid;gap:3px;padding:9px 11px;background:#1a344a;border-radius:10px;font-size:12px;color:#d6e8f6;min-width:110px}
+.billing-chip small{color:#97b4c8;font-size:10px;line-height:1.4}.billing-amount{display:grid;gap:3px;margin-top:11px;padding-top:11px;border-top:1px solid #30485d}
+.billing-amount small{color:#afc4d2;font-size:11px}.billing-amount strong{font-size:21px;color:#f5c577}.billing-amount span{font-size:11px;color:#b5cadb}
+.billing-summary{margin-top:14px}.billing-summary h2{font-size:17px}.billing-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:end;gap:7px}
+.billing-actions b{font-size:12px}.billing-actions .secondary{padding:6px!important}
+.billing-credit-tags{display:grid;gap:7px;margin:10px 0}.billing-credit-tags>div{display:flex;justify-content:space-between;color:#b7d0df;font-size:12px}
+.savings-actions{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.savings-explain{margin:12px 0;font-size:12px;color:#9eb9ca;line-height:1.65}
+.savings-tag{font-size:11px;color:#89d9db;display:inline-block;background:#19364a;padding:4px 8px;border-radius:8px}
+@media(min-width:680px){.billing-alerts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:370px){.billing-alert-head{align-items:start}.billing-actions{flex-direction:column;align-items:flex-end}}
