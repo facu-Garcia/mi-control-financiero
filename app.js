@@ -770,6 +770,8 @@
   }
   async function restoreDriveHistory(fileId){
     if(!drive?.ready){notify('Reconecta Google Drive antes de restaurar.');return;}
+    if(!confirm('Antes de consultar esta copia anterior, se descargará un respaldo de los datos actuales. Consérvalo en un lugar privado. ¿Continuar?'))return;
+    exportBackup();
     try{
       const raw=await drive.readHistory(fileId);
       const data=validatedBackup(raw);
