@@ -692,6 +692,8 @@
         const f=e.currentTarget,amount=cents(f.elements.amount.value),date=f.elements.date.value;
         if(!Number.isSafeInteger(amount)||amount<=0)throw Error('Importe inválido.');
         if(date<=a.balanceDate)throw Error('La fecha debe ser posterior al saldo inicial para no duplicar dinero.');
+        if(date<pocket.createdDate)throw Error('La fecha del rendimiento no puede ser anterior a la creación de la cajita.');
+        if(date>localDate())throw Error('No puedes registrar un rendimiento que todavía no se ha depositado.');
         await save('movements',{id:id(),type:'yield',date,accountId:a.id,toAccountId:'',amount,months:1,
           category:'Rendimientos',description:'Rendimiento de '+pocket.name,pocketId:pocket.id,createdAt:new Date().toISOString()});
         closeModal();selectedPocket=pocket.id;navigate('pocket');notify('Rendimiento sumado a la cuenta y cajita.');
@@ -779,7 +781,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.7.0 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.7.1 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -869,7 +871,8 @@
     const billingCycles=rawCycles.map(c=>{
       const amount=c.amountDue===null||c.amountDue===undefined?null:c.amountDue;
       const value={id:String(c.id||''),accountId:String(c.accountId||''),month:String(c.month||''),
-        cutDate:String(c.cutDate||''),dueDate:String(c.dueDate||''),amountDue:amount};
+        cutDate:String(c.cutDate||''),dueDate:String(c.dueDate||''),amountDue:amount,
+        source:c.source==='initialDebt'?'initialDebt':'bank'};
       if(!validId(value.id)||value.id!==value.accountId+'|'+value.month)throw Error('Identificador de corte inválido.');
       Billing.validateCycle(value,accounts);return value;
     });
@@ -878,7 +881,8 @@
     if(rawOld.length>10000)throw Error('Demasiados compromisos anteriores.');
     const legacyInstallments=rawOld.map(r=>{
       const value={id:String(r.id||''),accountId:String(r.accountId||''),label:String(r.label||''),
-        amount:r.amount,startMonth:String(r.startMonth||''),endMonth:String(r.endMonth||'')};
+        amount:r.amount,startMonth:String(r.startMonth||''),endMonth:String(r.endMonth||''),
+        includedInDebt:r.includedInDebt!==false};
       if(!validId(value.id))throw Error('Identificador de MSI inválido.');
       Billing.validateLegacy(value,accounts);return value;
     });
@@ -930,7 +934,9 @@
       case 'add-account':accountForm();break;case 'add-movement':movementForm();break;
       case 'billing-detail':closeModal();billingDetail(target.dataset.id);break;
       case 'edit-billing-cycle':cycleForm(target.dataset.id,target.dataset.month||selectedMonth);break;
-      case 'delete-billing-cycle':{const c=state.billingCycles.find(x=>x.id===target.dataset.id);if(c&&confirm('¿Eliminar el dato oficial de este corte? Se volverá a usar la fecha estimada.')){await remove('billingCycles',c.id);billingDetail(c.accountId);}break;}
+      case 'delete-billing-cycle':{const c=state.billingCycles.find(x=>x.id===target.dataset.id);
+        if(c&&state.movements.some(m=>m.paymentCycleId===c.id)){notify('Este corte tiene pagos vinculados. Edita primero esos pagos para retirar su vinculación.');break;}
+        if(c&&confirm('¿Eliminar el dato oficial de este corte? Se volverá a usar la fecha estimada.')){await remove('billingCycles',c.id);billingDetail(c.accountId);}break;}
       case 'add-legacy':legacyForm(target.dataset.id);break;
       case 'edit-legacy':{const row=state.legacyInstallments.find(x=>x.id===target.dataset.id);if(row)legacyForm(row.accountId,row);break;}
       case 'delete-legacy':{const row=state.legacyInstallments.find(x=>x.id===target.dataset.id);

@@ -54,12 +54,9 @@
         throw Error('Movimiento interno inválido.');
       for(const id of [m.fromPocketId,m.toPocketId])if(id&&!list.some(p=>p.id===id&&p.parentAccountId===m.parentAccountId))throw Error('La transferencia referencia una cajita inexistente.');
     }
-    for(const a of accounts.filter(a=>eligible(a)&&list.some(p=>p.parentAccountId===a.id))){
-      if(available(a,F.accountBalance(a,movements),list,moves,movements)<0)throw Error('Las cajitas de '+a.name+' superan su saldo bancario.');
-      for(const p of list.filter(p=>p.parentAccountId===a.id)){
-        if(balance(p,moves,movements)<0)throw Error('La cajita '+p.name+' tiene saldo negativo.');
-      }
-    }
+    // A valid historical backup can contain a temporary mismatch after a bank
+    // purchase or account correction. Never reject restoration solely for that.
+    // The UI reports mismatches; new allocations still require available funds.
     return true;
   }
   return {eligible,validatePocket,balance,allocated,totalAllocated,available,validateMove,validateSnapshot};

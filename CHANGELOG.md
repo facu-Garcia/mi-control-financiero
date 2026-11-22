@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.7.1] - 2026-11-21
+- Mantener flags de corte originado del saldo inicial y de MSI ya incluidas en deuda al restaurar.
+- Proteger cortes vinculados a pagos contra eliminaciones accidentales.
+- Restringir fechas de rendimientos al periodo en que existe la cajita.
+- Permitir recuperar respaldos con descuadres temporales de ahorro sin bloquear la restauración; el usuario debe corregir el saldo reservado posteriormente.
+
+
 ## [0.7.0] - 2026-11-21
 - Convertir detalle de cualquier cuenta a página completa; tarjetas y cuentas mantienen sus diseños.
 - Sustituir alertas grandes y duplicadas por filas compactas de crédito con deuda, pago del corte, fecha límite y próximo corte.

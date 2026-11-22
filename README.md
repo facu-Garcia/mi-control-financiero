@@ -1,3 +1,13 @@
+# Mi Control Financiero · PWA v0.7.1
+
+### Seguridad de la migración
+- El respaldo conserva el origen de un corte (si se capturó como deuda inicial) y si las mensualidades anteriores ya estaban incluidas en la deuda. No se pierden estas decisiones al restaurar Google Drive ni JSON.
+- No se elimina un corte con pagos vinculados: primero edita los pagos y desvincúlalos.
+- El rendimiento de una cajita no puede registrarse antes de su creación ni con una fecha futura.
+- Una copia de seguridad válida se puede restaurar aunque, temporalmente, una cuenta haya gastado parte de dinero reservado: se mantiene la discrepancia para corregirla en vez de bloquear la recuperación. Nuevas asignaciones siguen sujetas al saldo disponible.
+
+---
+
 # Mi Control Financiero · PWA v0.7.0
 
 ## Cuenta a pantalla completa
