@@ -1,3 +1,15 @@
+# Mi Control Financiero · v0.12.0 — Informes interactivos
+
+- Cuatro informes: Flujo, Gastos, Patrimonio y Crédito.
+- Ingresos reales frente a compras por mes financiero, sin duplicar pagos de tarjetas.
+- Desglose por categorías con consulta de movimientos de cada categoría.
+- Evolución histórica de dinero, deuda y patrimonio; sin inventar saldos previos a las fechas iniciales.
+- Saldos de deuda al cierre del mes y pagos de tarjeta realmente registrados en gráficas separables.
+- Filtros de 3/6/12 meses, cuenta y mes; visualizaciones accesibles y estados sin datos.
+- Sin cambios de base de datos, sin alterar respaldos ni operaciones previas.
+
+---
+
 # Mi Control Financiero · v0.11.2 — Ajuste de tarjetas de categorías
 
 - Las tarjetas del menú modal ajustan su altura a descripciones largas en pantallas pequeñas.
