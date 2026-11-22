@@ -31,7 +31,7 @@
     const warns=capacity.warnings.length?'<details class="agenda-references"><summary>Advertencias del cálculo ('+
       capacity.warnings.length+')</summary><div class="inline-note">'+capacity.warnings.map(w=>'<p>'+E(w)+'</p>').join('')+'</div></details>':'';
     const monthNote=month===capacity.today.slice(0,7)?'Este mes':'Mes seleccionado';
-    return '<div class="agenda-head"><div class="eyebrow">Tus finanzas por fecha</div><h1>Agenda financiera</h1>'+
+    return '<div class="agenda-head"><div class="eyebrow">Tus finanzas por fecha</div><h1>Planear mi mes</h1>'+
       '<div class="agenda-month"><strong>'+E(title.charAt(0).toUpperCase()+title.slice(1))+'</strong>'+
       '<label for="month-control">Cambiar mes</label><input id="month-control" type="month" value="'+E(month)+'" aria-label="Seleccionar mes y año"></div></div>'+
       '<div class="planning-actions"><button class="secondary small" type="button" data-action="back-home">← Inicio</button>'+
