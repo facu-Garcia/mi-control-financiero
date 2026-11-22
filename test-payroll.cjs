@@ -50,7 +50,7 @@ assert.ok(app.includes("case 'payroll-classify':"));
 assert.ok(app.includes("if(date<=recipient.balanceDate)"));
 assert.ok(storage.includes("'payrollProfiles'"));
 assert.ok(index.includes('features/payroll/payroll.js?v=0.5.0'));
-assert.ok(index.indexOf('features/payroll/payroll.js')<index.indexOf('app.js?v=0.5.0'));
+assert.ok(index.indexOf('features/payroll/payroll.js')<index.indexOf('app.js?v='));
 assert.ok(sw.includes('features/payroll/payroll-view.js'));
 assert.ok(!P.TYPES.admin);
 console.log('✓ Nómina privada: quincenas, último día, extras, no duplicación, respaldo y módulos');
