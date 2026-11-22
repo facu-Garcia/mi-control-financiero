@@ -41,6 +41,12 @@ const deps={F,Billing:B,Pockets:P,Payroll,Rec,Cards,accountTypes,txNames};
   mock.listHistory=async()=>[{id:'archive-123',name:backupName}];
   assert.equal(await mock.archivePrevious(sealed),false);
   assert.equal(backupCount,1);
+  // Conflict overwrite must archive a distinct revision even on the same day.
+  mock.forceArchive=true;
+  assert.equal(await mock.archivePrevious(sealed),true);
+  assert.equal(backupCount,2);
+  assert.match(backupName,/mi-control-financiero-historial-.*-/);
+  mock.forceArchive=false;
   mock.request=async()=>archived;
   assert.deepEqual(await mock.readHistory('archive-123'),snap);
   await assert.rejects(()=>mock.readHistory('untrusted-file'),/no existe/);

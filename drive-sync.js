@@ -57,7 +57,7 @@
   class DriveSync {
     constructor({getData,restore,onStatus}){
       this.getData=getData;this.restore=restore;this.onStatus=onStatus;this.token='';this.password='';this.fileId=null;this.remoteRevision=null;
-      this.ready=false;this.dirty=false;this.running=false;this.timer=null;this.status='Desconectado';this.clientId='';
+      this.ready=false;this.dirty=false;this.running=false;this.timer=null;this.status='Desconectado';this.clientId='';this.forceArchive=false;
       try{this.clientId=localStorage.getItem('mcf-drive-client-id')||'';}catch{/* El navegador puede restringir localStorage; Drive sigue funcionando por sesión. */}
       this.notify('Desconectado');window.addEventListener('online',()=>{if(this.ready&&this.dirty)this.schedule();});
     }
@@ -111,7 +111,10 @@
     async archivePrevious(encrypted){
       if(!encrypted?.payload)throw Error('No se pudo verificar la copia cifrada anterior.');
       const stamp=new Date().toISOString().slice(0,10);
-      const name=HISTORY_PREFIX+stamp+'.enc.json';
+      // Explicit conflict resolution preserves the current cloud revision even
+      // if a regular daily archive already exists.
+      const suffix=this.forceArchive?'-'+String(encrypted.revision||'unknown').replace(/[^a-zA-Z0-9-]/g,'').slice(0,60):'';
+      const name=HISTORY_PREFIX+stamp+suffix+'.enc.json';
       const list=await this.listHistory();
       if(list.some(f=>f.name===name))return false;
       await this.createEncryptedFile(name,encrypted);
@@ -172,7 +175,7 @@
       this.ready=true;this.dirty=false;this.notify('Sincronizado · Drive protegido');return {status:'current'};
     }
     async acceptCloud(snapshot){await this.restore(snapshot);this.dirty=false;this.ready=true;this.notify('Restaurado y sincronizado');}
-    async useLocal(){this.ready=true;this.dirty=true;await this.sync();}
+    async useLocal(){this.ready=true;this.dirty=true;this.forceArchive=true;try{await this.sync();}finally{this.forceArchive=false;}}
     markChanged(){this.dirty=true;if(this.ready)this.schedule();else this.notify('Cambios locales · pendientes de Drive');}
     schedule(){clearTimeout(this.timer);this.timer=setTimeout(()=>{this.sync().catch(err=>this.notify('Sin sincronizar: '+err.message));},1200);}
     async sync(){
