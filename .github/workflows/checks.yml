@@ -38,6 +38,8 @@ jobs:
           node --check test-billing.cjs
           node --check test-payroll.cjs
           node --check features/finance/forms.js
+          node --check features/finance/transaction-forms.js
+          node --check test-transaction-forms.cjs
           node --check features/dashboard/dashboard.js
           node --check features/ui/account-picker.js
           node --check test-ui-v42.cjs
@@ -56,6 +58,8 @@ jobs:
           node --check test-csv.cjs
           node --check test-drive.cjs
           node --check test-storage.cjs
+          node --check test-atomic-movements.cjs
+          node --check test-reconciliation.cjs
           node --check test-audit.cjs
       - name: Ejecutar pruebas financieras
         run: |
@@ -64,7 +68,10 @@ jobs:
           node test-drive.cjs
           node test-backup-history.cjs
           node test-storage.cjs
+          node test-atomic-movements.cjs
+          node test-reconciliation.cjs
           node test-audit.cjs
+          node test-transaction-forms.cjs
           node test-cards.cjs
           node test-finance-v4.cjs
           node test-billing.cjs
