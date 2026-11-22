@@ -1,4 +1,4 @@
-const VERSION = 'mcf-v2-1-20261121';
+const VERSION = 'mcf-v2-2-20261121';
 const ASSETS = ['./','./index.html','./styles.css','./logic.js','./app.js','./csv.js','./drive-sync.js','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('mcf-')&&k!==VERSION).map(k=>caches.delete(k)))),self.clients.claim()])));

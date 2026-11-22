@@ -36,7 +36,14 @@
   function snapshot(){return {schemaVersion:2,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,settings:state.settings};}
   function afterChange(){drive?.markChanged();}
   function sortTx(list){return [...list].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));}
-  function notify(msg){toastNode.textContent=msg;toastNode.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toastNode.classList.remove('show'),3500);}
+  function notify(msg){
+    const message=String(msg||'Ocurrió un error.');
+    toastNode.textContent=message;toastNode.classList.add('show');
+    clearTimeout(notify.timer);notify.timer=setTimeout(()=>toastNode.classList.remove('show'),4500);
+    // Las notificaciones fuera de <dialog> pueden quedar detrás de su capa superior.
+    const notice=modal.open?document.getElementById('dialog-notice'):null;
+    if(notice){notice.textContent=message;notice.hidden=false;notice.scrollIntoView({block:'nearest',behavior:'auto'});}
+  }
   function request(store,method,arg){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store)[method](arg);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
   function mutate(store,kind,entry){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);const target=tx.objectStore(store);if(kind==='put')target.put(entry);else if(kind==='delete')target.delete(entry);});}
   function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;for(const s of ['accounts','movements','settings','budgets'])if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -108,7 +115,7 @@
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
     if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else renderReports();}
   function navigate(p){page=p;filter='all';render();window.scrollTo(0,0);}
-  function openModal(title,body){modalInner.innerHTML=`<div class="modal-body"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" data-action="close" aria-label="Cerrar">×</button></div>${body}</div>`;if(!modal.open)modal.showModal();}
+  function openModal(title,body){modalInner.innerHTML=`<div class="modal-body"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" data-action="close" aria-label="Cerrar">×</button></div><p id="dialog-notice" class="dialog-notice" role="status" aria-live="polite" hidden></p>${body}</div>`;if(!modal.open)modal.showModal();}
   function closeModal(){if(modal.open)modal.close();}
   const option=(v,label,selected)=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(label)}</option>`;
   function field(label,name,type='text',value='',hint='',extra=''){return `<div class="field"><label for="f-${esc(name)}">${esc(label)}</label><input id="f-${esc(name)}" name="${esc(name)}" type="${esc(type)}" value="${esc(value)}" ${extra}>${hint?`<small>${esc(hint)}</small>`:''}</div>`;}
@@ -221,7 +228,15 @@
       await reload();afterChange();notify(`Importados ${parsed.items.length} ${label}.`);
     }catch(err){notify(err.message||'No se pudo importar el CSV');}
   }
-  async function startDrive(clientId,passphrase){try{
+  async function startDrive(clientId,passphrase){
+    const feedback=document.getElementById('drive-feedback');
+    const connectButton=document.querySelector('#drive-form button[type="submit"]');
+    const show=(message,isError=false)=>{
+      if(feedback){feedback.textContent=message;feedback.hidden=false;feedback.setAttribute('data-error',String(isError));}
+    };
+    if(connectButton){connectButton.disabled=true;connectButton.textContent='Conectando con Google…';}
+    show('Solicitando autorización de Google. Si no aparece una ventana, abre este sitio directamente en Chrome.');
+    try{
     const result=await drive.connect(clientId,passphrase);
     if(result.status==='conflict'){
       const restore=confirm(`Drive tiene un respaldo del ${new Date(result.updatedAt).toLocaleString('es-MX')} diferente a los datos del celular.\nACEPTAR: recuperar el respaldo de Drive y REEMPLAZAR los datos locales.\nCANCELAR: conservar datos locales y dejar la sincronización pausada.`);
@@ -231,7 +246,13 @@
       }
     }else notify(result.status==='created'?'Respaldo cifrado creado en Drive':'Drive conectado. Datos sincronizados.');
     const node=document.getElementById('drive-status');if(node)node.textContent=cloudStatus();
-  }catch(err){notify(err.message||'Falló la conexión con Drive');}}
+    show(result.status==='conflict'?'Existen diferencias entre el dispositivo y Drive. Revisa tu elección antes de sincronizar.':'Conexión realizada. Verifica que el estado diga Sincronizado.');
+  }catch(err){
+    const message=err?.message||'Falló la conexión con Google Drive.';
+    show('No se pudo conectar: '+message,true);notify(message);
+  }finally{
+    if(connectButton){connectButton.disabled=false;connectButton.textContent='Conectar / recuperar Google Drive';}
+  }}
   function settingsModal(){
     openModal('Configuración y respaldos',`<form id="settings-form" class="form">
       ${field('Ingreso mensual previsto ($)','salary','number',val(state.settings.salary||0),'Úsalo como referencia: los ingresos reales se registran como movimientos.','min="0" step="0.01"')}
@@ -240,7 +261,7 @@
       <div class="divider"></div><div class="section-title"><h2>Seguridad y archivos</h2></div>
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" hidden></p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);

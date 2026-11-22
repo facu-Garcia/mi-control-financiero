@@ -62,8 +62,34 @@
       this.password=password;
       // This function is called from a user click: requestAccessToken must be initiated by user gesture.
       const token=await new Promise((resolve,reject)=>{
-        const tc=google.accounts.oauth2.initTokenClient({client_id:this.clientId,scope:SCOPE,callback:response=>response.error?reject(Error(response.error)):resolve(response.access_token),error_callback:()=>reject(Error('No se autorizó el acceso a Google.'))});
-        tc.requestAccessToken({prompt:'consent'});
+        let finished=false;
+        const finish=(error,value)=>{
+          if(finished)return;
+          finished=true;clearTimeout(timeout);
+          if(error)reject(error);else resolve(value);
+        };
+        // Evita quedar indefinidamente en "Conectando" si el navegador bloquea la ventana.
+        const timeout=setTimeout(()=>finish(Error('Google no respondió. Abre la PWA desde una pestaña de Chrome, permite ventanas emergentes y vuelve a intentar.')),90000);
+        try{
+          const tc=window.google.accounts.oauth2.initTokenClient({
+            client_id:this.clientId,scope:SCOPE,
+            callback:response=>{
+              if(response?.error)finish(Error('Google rechazó la autorización: '+response.error+(response.error_description?' — '+response.error_description:'')));
+              else if(response?.access_token)finish(null,response.access_token);
+              else finish(Error('Google no devolvió un token de acceso. Revisa el Client ID y el origen autorizado.'));
+            },
+            error_callback:event=>{
+              const type=event?.type||'desconocido';
+              const message=type==='popup_failed_to_open'
+                ?'El navegador bloqueó la ventana de Google. Abre el sitio en Chrome y permite ventanas emergentes.'
+                :type==='popup_closed'
+                  ?'La ventana de Google se cerró antes de autorizar. Pulsa Conectar para intentarlo de nuevo.'
+                  :'No se pudo completar la autorización de Google ('+type+'). Abre el sitio en Chrome.';
+              finish(Error(message));
+            }
+          });
+          tc.requestAccessToken({prompt:'consent'});
+        }catch(error){finish(Error(error?.message||'No se pudo abrir la autorización de Google.'));}
       });
       this.token=token;this.notify('Comprobando respaldo en Drive…');
       const found=await this.lookup();this.fileId=found?.id||null;

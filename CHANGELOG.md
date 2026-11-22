@@ -1,5 +1,17 @@
 # Historial de cambios
 
+## [0.2.2] - 2026-11-21
+
+### Corregido
+- Mostrar mensajes y errores de Google Drive dentro de la ventana de Ajustes (antes podían quedar ocultos detrás del diálogo).
+- Indicar cuando se está solicitando autorización y deshabilitar temporalmente el botón para evitar pulsaciones repetidas.
+- Detectar cierre o bloqueo de ventanas emergentes de Google y mostrar instrucciones para Chrome.
+- Informar de ausencia de respuesta de Google y permitir reintentar sin quedarse conectando indefinidamente.
+
+### Actualizado
+- Renovar la caché de la PWA para instalar la corrección.
+
+
 ## [0.2.1] - 2026-11-21
 
 ### Cambiado
