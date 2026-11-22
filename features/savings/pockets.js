@@ -34,7 +34,7 @@
     const account=accounts.find(a=>a.id===move.parentAccountId);
     if(!eligible(account))throw Error('Cuenta de origen inválida.');
     if(!Number.isSafeInteger(move.amount)||move.amount<=0)throw Error('El importe debe ser mayor a cero.');
-    if(typeof move.date!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(move.date))throw Error('Fecha inválida.');
+    if(typeof move.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(move.date))throw Error('Fecha inválida.');
     if(move.fromPocketId===move.toPocketId)throw Error('Elige origen y destino distintos.');
     const parentPockets=pockets.filter(p=>p.parentAccountId===account.id);
     if(move.fromPocketId&&!parentPockets.some(p=>p.id===move.fromPocketId))throw Error('Cajita de origen inválida.');
