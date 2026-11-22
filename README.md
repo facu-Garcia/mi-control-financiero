@@ -1,3 +1,11 @@
+# Mi Control Financiero · v0.11.2 — Ajuste de tarjetas de categorías
+
+- Las tarjetas del menú modal ajustan su altura a descripciones largas en pantallas pequeñas.
+- El listado de categorías se desplaza dentro del modal, con encabezado y pie visibles.
+- Mantiene la cuadrícula de dos columnas y el selector nativo sincronizado.
+
+---
+
 # Mi Control Financiero · v0.11.1 — Selectores visuales de movimientos
 
 - Selector de tipo de movimiento con iconos y descripción de cada operación.
