@@ -14,7 +14,7 @@
 .fr-summary>div{min-width:0;border:1px solid #2f4d65;background:#192e44;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:5px}
 .fr-summary small{color:#b2c8d9;font-size:11px}.fr-summary strong{font-size:clamp(16px,4vw,21px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .fr-chart-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:4px}
-.fr-chart{min-width:0;width:100%;display:block}
+.fr-chart{min-width:560px;width:100%;display:block}
 .fr-gridline{stroke:#33506a;stroke-width:1}.fr-axis{fill:#a7bdcf;font-size:10px}
 .fr-legend{display:flex;flex-wrap:wrap;gap:13px;margin:12px 0 3px;font-size:12px;color:#bfd4e3}
 .fr-dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
