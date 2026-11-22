@@ -48,6 +48,8 @@ jobs:
           node --check card-images.js
           node --check test-cards.cjs
           node --check drive-sync.js
+          node --check features/backup/backup-model.js
+          node --check test-backup-history.cjs
           node --check app.js
           node --check sw.js
           node --check test-logic.cjs
@@ -60,6 +62,7 @@ jobs:
           node test-logic.cjs
           node test-csv.cjs
           node test-drive.cjs
+          node test-backup-history.cjs
           node test-storage.cjs
           node test-audit.cjs
           node test-cards.cjs

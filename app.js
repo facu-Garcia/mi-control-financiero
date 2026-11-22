@@ -4,6 +4,7 @@
   const F = window.Finance;
   const CSV = window.FinanceCSV;
   const G = window.FinanceDrive;
+  const BackupModel = window.FinanceBackupModel;
   const S = window.FinanceStorage;
   const Cards = window.FinanceCards;
   const CardImages = window.FinanceCardImages;
@@ -54,7 +55,7 @@
   function getAccount(aid){return F.accountById(state.accounts,aid);}
   function badgeFor(a){const t=bankThemes[String(a.institution||'').toLowerCase().trim()]||{color:'#395e79',label:(a.institution||a.name||'CT').slice(0,2).toUpperCase()};return t;}
   function cloudStatus(){return drive?.status||(driveInitError?'No disponible':'Sin configurar');}
-  function snapshot(){return {schemaVersion:6,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,recurrences:state.recurrences,reconciliations:state.reconciliations,audits:state.audits,payrollProfiles:state.payrollProfiles,billingCycles:state.billingCycles,legacyInstallments:state.legacyInstallments,pockets:state.pockets,pocketMoves:state.pocketMoves,settings:state.settings};}
+  function snapshot(){return BackupModel.capture(state);}
   function afterChange(){drive?.markChanged();}
   function sortTx(list){return [...list].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));}
   function notify(msg){
@@ -752,6 +753,36 @@
       throw Error(driveInitError);
     }
   }
+  async function showDriveHistory(){
+    if(!drive?.ready){notify('Conecta primero Google Drive desde Ajustes.');return;}
+    try{
+      const rows=await drive.listHistory();
+      openModal('Historial de respaldos cifrados',`
+        <p class="help">Drive guarda una copia cifrada diaria cuando se reemplaza el respaldo principal. Las versiones anteriores permanecen disponibles hasta que tú las elimines. No se restaurará nada sin tu aprobación.</p>
+        <div class="stack">${rows.length?rows.slice(0,100).map(row=>`
+          <div class="report-line"><span>${esc(row.name.replace('mi-control-financiero-historial-','').replace('.enc.json',''))}
+          <small class="help">Copia privada cifrada</small></span>
+          <button class="secondary small" data-action="restore-drive-history" data-id="${esc(row.id)}">Revisar</button></div>
+        `).join(''):'<p class="help">Aún no existen versiones anteriores. La primera se generará antes de reemplazar el respaldo principal.</p>'}</div>
+        <div class="toolbar"><button class="secondary small" data-action="export-backup">Exportar copia local</button>
+          <button class="secondary small" data-action="drive-history">Actualizar lista</button></div>`);
+    }catch(err){notify('No se pudo consultar el historial: '+(err?.message||err));}
+  }
+  async function restoreDriveHistory(fileId){
+    if(!drive?.ready){notify('Reconecta Google Drive antes de restaurar.');return;}
+    try{
+      const raw=await drive.readHistory(fileId);
+      const data=validatedBackup(raw);
+      const same=G.snapshotsEqual(snapshot(),raw);
+      if(same){notify('Esta copia ya coincide con tus datos actuales.');return;}
+      if(!confirm(`Copia cifrada: ${data.accounts.length} cuentas y ${data.movements.length} movimientos. Restaurarla REEMPLAZARÁ los datos actuales. Antes exporta un respaldo JSON desde Ajustes. ¿Revisaste tu copia local?`))return;
+      if(!confirm('Última confirmación: se reemplazará todo el contenido local con este historial. ¿Continuar?'))return;
+      // Replacing all stores is atomic. Upload of this state is still a separate
+      // operation, so a failed Drive upload leaves it safely on this device.
+      await replaceBackup(data);closeModal();await reload();drive.markChanged();
+      notify('Historial restaurado localmente. Verifica el estado de Drive para confirmar la sincronización.');
+    }catch(err){notify('No se restauró el historial: '+(err?.message||err));}
+  }
   async function startDrive(clientId,passphrase){
     const feedback=document.getElementById('drive-feedback');
     const connectButton=document.querySelector('#drive-form button[type="submit"]');
@@ -788,7 +819,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.8.1 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button><button class="secondary small" data-action="drive-history">Historial de copias</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.9.0 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -812,117 +843,8 @@
   function exportCsv(){const r=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth,state.billingCycles,state.legacyInstallments);const rows=[['fecha','mes_financiero','tipo','cuenta_origen','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI','concepto_nomina']];
     for(const m of r.movements)rows.push([m.date,m.financialMonth,m.type,getAccount(m.accountId)?.name||'',getAccount(m.toAccountId)?.name||'',m.category||'',m.description||'',val(m.amount),m.months||1,Payroll.TYPES[m.payrollKind]||'']);
     const csv='\ufeff'+rows.map(row=>row.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadFile(`mis-movimientos-${selectedMonth}.csv`,csv,'text/csv;charset=utf-8');notify('CSV exportado');}
-  function validatedBackup(x){
-    if(!x||x.kind!=='complete-backup'||![1,2,3,4,5,6].includes(x.schemaVersion)||!Array.isArray(x.accounts)||!Array.isArray(x.movements)||!x.settings||x.accounts.length>1000||x.movements.length>100000)throw Error('El archivo no es un respaldo compatible.');
-    const validId=s=>typeof s==='string'&&s.length>0&&s.length<=100;
-    const validMoney=v=>Number.isSafeInteger(v)&&Math.abs(v)<=1e15;
-    const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);
-    const accounts=x.accounts.map(a=>{
-      if(!validId(a.id)||!Object.hasOwn(accountTypes,a.type)||typeof a.name!=='string'||a.name.length>90||!validDate(a.balanceDate)||!validMoney(a.initialBalance)||!validMoney(a.initialDebt)||!validMoney(a.creditLimit)||!Number.isInteger(a.cutDay)||a.cutDay<0||a.cutDay>31||!Number.isInteger(a.dueDay)||a.dueDay<0||a.dueDay>31)throw Error('El respaldo contiene una cuenta inválida.');
-      return {id:a.id,name:a.name,institution:String(a.institution||'').slice(0,90),type:a.type,balanceDate:a.balanceDate,initialBalance:a.initialBalance,initialDebt:a.initialDebt,creditLimit:a.creditLimit,cutDay:a.cutDay,dueDay:a.dueDay,
-         cardStyle:Cards.styleOf(a.cardStyle),cardImage:Cards.safePicture(a.cardImage),createdAt:String(a.createdAt||'')};
-    });
-    const idMap=new Map(accounts.map(a=>[a.id,a]));if(idMap.size!==accounts.length)throw Error('Hay cuentas duplicadas.');
-    const movements=x.movements.map(m=>{
-      if(!validId(m.id)||!Object.hasOwn(txNames,m.type)||!validDate(m.date)||!validId(m.accountId)||!idMap.has(m.accountId)||!validMoney(m.amount)||m.amount<=0||!Number.isInteger(m.months)||m.months<1||m.months>120||typeof m.description!=='string'||m.description.length>200||typeof m.category!=='string'||m.category.length>100)throw Error('El respaldo contiene movimientos inválidos.');
-      const dst=String(m.toAccountId||'');if((m.type==='transfer'||m.type==='payment')&&!idMap.has(dst))throw Error('Hay movimientos con destino inexistente.');
-      return {id:m.id,type:m.type,date:m.date,accountId:m.accountId,toAccountId:dst,amount:m.amount,months:m.months,category:m.category,description:m.description,createdAt:String(m.createdAt||''),
-        recurrenceId:String(m.recurrenceId||'').slice(0,100),recurrenceMonth:String(m.recurrenceMonth||'').slice(0,7),
-        autoGenerated:m.autoGenerated===true,confirmed:m.confirmed===true,
-         payrollKind:m.type==='income'&&Object.hasOwn(Payroll.TYPES,m.payrollKind)?m.payrollKind:'',
-         payrollKey:m.type==='income'&&Object.hasOwn(Payroll.TYPES,m.payrollKind)?String(m.payrollKey||'').slice(0,120):'',
-        pocketId:m.type==='yield'?String(m.pocketId||'').slice(0,100):'',
-        paymentCycleId:m.type==='payment'?String(m.paymentCycleId||'').slice(0,100):'',
-        legacyId:m.type==='debtAdjustment'?String(m.legacyId||'').slice(0,100):''};
-    });
-    if(new Set(movements.map(m=>m.id)).size!==movements.length)throw Error('Hay movimientos duplicados.');
-    const salary=x.settings.salary||0,target=x.settings.savingsTarget||0;
-    if(!validMoney(salary)||!validMoney(target)||salary<0||target<0)throw Error('Las preferencias son inválidas.');
-    const rawBudgets=Array.isArray(x.budgets)?x.budgets:[];
-    if(rawBudgets.length>2000)throw Error('Demasiados presupuestos.');
-    const budgets=rawBudgets.map(b=>{if(!validId(b.id)||!validMoney(b.limit)||b.limit<=0||!validId(b.category)||!(b.accountId==='all'||idMap.has(b.accountId)))throw Error('Presupuesto inválido.');return {id:b.id,category:b.category,accountId:b.accountId,limit:b.limit};});
-    const rawRec=Array.isArray(x.recurrences)?x.recurrences:[];
-    if(rawRec.length>3000)throw Error('Demasiadas suscripciones.');
-    const recurrences=rawRec.map(r=>{const value={
-      id:String(r.id||''),name:String(r.name||'').slice(0,80),amount:r.amount,accountId:String(r.accountId||''),
-      day:Number(r.day),category:String(r.category||'Suscripciones').slice(0,100),frequency:'monthly',paused:r.paused===true,
-      startDate:String(r.startDate||''),endDate:String(r.endDate||'')
-    };if(!validId(value.id)||!idMap.has(value.accountId))throw Error('Suscripción con cuenta inválida.');Rec.validate(value,accounts);return value;});
-    const rawRecs=Array.isArray(x.reconciliations)?x.reconciliations:[];
-    if(rawRecs.length>20000)throw Error('Demasiadas conciliaciones.');
-    const reconciliations=rawRecs.map(r=>{if(!validId(r.id)||!idMap.has(r.accountId)||!validMoney(r.actual)||!validMoney(r.expected)||!validDate(r.date))throw Error('Conciliación inválida.');
-      return {id:r.id,accountId:r.accountId,date:r.date,actual:r.actual,expected:r.expected,difference:r.actual-r.expected,note:String(r.note||'').slice(0,150),createdAt:String(r.createdAt||'')};
-    });
-    const rawAudits=Array.isArray(x.audits)?x.audits:[];
-    if(rawAudits.length>20000)throw Error('Demasiadas entradas de historial.');
-    const audits=rawAudits.map(a=>{if(!validId(a.id)||!validId(a.movementId))throw Error('Auditoría inválida.');return {id:a.id,movementId:a.movementId,date:String(a.date||'').slice(0,40),before:a.before||null,after:a.after||null};});
-    const rawPayroll=Array.isArray(x.payrollProfiles)?x.payrollProfiles:[];
-    if(rawPayroll.length>10)throw Error('Demasiadas cuentas de nómina.');
-    const payrollProfiles=rawPayroll.map(p=>{
-      const profile={id:String(p.id||''),accountId:String(p.accountId||''),frequency:String(p.frequency||''),
-        day1:Number(p.day1),day2:Number(p.day2),expectedNet:p.expectedNet,
-        createdAt:String(p.createdAt||'').slice(0,40)};
-      Payroll.validate(profile,accounts);
-      return profile;
-    });
-    if(new Set(payrollProfiles.map(p=>p.accountId)).size!==payrollProfiles.length)throw Error('Hay cuentas de nómina duplicadas.');
-    if(payrollProfiles.length>1)throw Error('El respaldo contiene más de una cuenta de nómina principal.');
-    const payrollKeys=new Set();
-    for(const m of movements){
-      if(!m.payrollKey)continue;
-      if(payrollKeys.has(m.payrollKey))throw Error('Hay pagos de nómina duplicados.');
-      payrollKeys.add(m.payrollKey);
-    }
-    const rawCycles=Array.isArray(x.billingCycles)?x.billingCycles:[];
-    if(rawCycles.length>10000)throw Error('Demasiados estados de cuenta.');
-    const billingCycles=rawCycles.map(c=>{
-      const amount=c.amountDue===null||c.amountDue===undefined?null:c.amountDue;
-      const value={id:String(c.id||''),accountId:String(c.accountId||''),month:String(c.month||''),
-        cutDate:String(c.cutDate||''),dueDate:String(c.dueDate||''),amountDue:amount,
-        source:c.source==='initialDebt'?'initialDebt':'bank'};
-      if(!validId(value.id)||value.id!==value.accountId+'|'+value.month)throw Error('Identificador de corte inválido.');
-      Billing.validateCycle(value,accounts);return value;
-    });
-    if(new Set(billingCycles.map(c=>c.id)).size!==billingCycles.length)throw Error('Cortes duplicados.');
-    const rawOld=Array.isArray(x.legacyInstallments)?x.legacyInstallments:[];
-    if(rawOld.length>10000)throw Error('Demasiados compromisos anteriores.');
-    const legacyInstallments=rawOld.map(r=>{
-      const value={id:String(r.id||''),accountId:String(r.accountId||''),label:String(r.label||''),
-        amount:r.amount,startMonth:String(r.startMonth||''),endMonth:String(r.endMonth||''),
-        includedInDebt:r.includedInDebt!==false};
-      if(!validId(value.id))throw Error('Identificador de MSI inválido.');
-      Billing.validateLegacy(value,accounts);return value;
-    });
-    if(new Set(legacyInstallments.map(x=>x.id)).size!==legacyInstallments.length)throw Error('MSI anteriores duplicadas.');
-    const rawPockets=Array.isArray(x.pockets)?x.pockets:[];
-    const rawMoves=Array.isArray(x.pocketMoves)?x.pocketMoves:[];
-    if(rawPockets.length>10000||rawMoves.length>100000)throw Error('Demasiados movimientos o cajitas.');
-    const pockets=rawPockets.map(p=>{
-      const value={id:String(p.id||''),parentAccountId:String(p.parentAccountId||''),name:String(p.name||''),
-        openingBalance:p.openingBalance,createdDate:String(p.createdDate||''),createdAt:String(p.createdAt||'')};
-      Pockets.validatePocket(value,accounts);if(!validDate(value.createdDate))throw Error('Fecha de cajita inválida.');
-      return value;
-    });
-    const pocketMoves=rawMoves.map(m=>{
-      const value={id:String(m.id||''),parentAccountId:String(m.parentAccountId||''),
-        fromPocketId:String(m.fromPocketId||''),toPocketId:String(m.toPocketId||''),
-        amount:m.amount,date:String(m.date||'')};
-      if(!validId(value.id)||!validMoney(value.amount)||value.amount<=0||!validDate(value.date))throw Error('Movimiento de cajita inválido.');
-      return value;
-    });
-    if(new Set(pocketMoves.map(m=>m.id)).size!==pocketMoves.length)throw Error('Movimientos de cajita duplicados.');
-    for(const m of movements){
-      if(m.pocketId&&!pockets.some(p=>p.id===m.pocketId&&p.parentAccountId===m.accountId))throw Error('Rendimiento vinculado a cajita inexistente.');
-      if(m.paymentCycleId&&!Billing.effectiveCycles(idMap.get(m.toAccountId)||{},billingCycles).some(c=>c.id===m.paymentCycleId))throw Error('Pago vinculado a corte inexistente.');
-      if(m.type==='debtAdjustment'&&(!m.legacyId||!legacyInstallments.some(r=>r.id===m.legacyId&&r.accountId===m.accountId)))throw Error('Ajuste de deuda sin mensualidad asociada.');
-    }
-    Pockets.validateSnapshot(accounts,pockets,pocketMoves,movements,F);
-    return {accounts,movements,budgets,recurrences,reconciliations,audits,payrollProfiles,billingCycles,legacyInstallments,pockets,pocketMoves,settings:{id:'preferences',salary,savingsTarget:target}};
-  }
-  async function replaceBackup(x){return new Promise((resolve,reject)=>{const tx=db.transaction(['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles','billingCycles','legacyInstallments','pockets','pocketMoves'],'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));
-    for(const storeName of ['accounts','movements','settings','budgets','recurrences','reconciliations','audits','payrollProfiles','billingCycles','legacyInstallments','pockets','pocketMoves'])tx.objectStore(storeName).clear();
-    x.accounts.forEach(a=>tx.objectStore('accounts').put(a));x.movements.forEach(m=>tx.objectStore('movements').put(m));(x.budgets||[]).forEach(b=>tx.objectStore('budgets').put(b));(x.recurrences||[]).forEach(r=>tx.objectStore('recurrences').put(r));(x.reconciliations||[]).forEach(r=>tx.objectStore('reconciliations').put(r));(x.audits||[]).forEach(a=>tx.objectStore('audits').put(a));(x.payrollProfiles||[]).forEach(p=>tx.objectStore('payrollProfiles').put(p));(x.billingCycles||[]).forEach(c=>tx.objectStore('billingCycles').put(c));(x.legacyInstallments||[]).forEach(r=>tx.objectStore('legacyInstallments').put(r));(x.pockets||[]).forEach(p=>tx.objectStore('pockets').put(p));(x.pocketMoves||[]).forEach(m=>tx.objectStore('pocketMoves').put(m));tx.objectStore('settings').put(x.settings);
-  });}
+  function validatedBackup(x){return BackupModel.validate(x,{Cards,Payroll,Billing,Pockets,F,Rec,accountTypes,txNames});}
+  function replaceBackup(x){return BackupModel.replace(db,x);}
   async function importBackupFile(file){if(!file)return;if(file.size>15*1024*1024){notify('Archivo demasiado grande (máximo 15 MB).');return;}
     try{const x=validatedBackup(JSON.parse(await file.text()));
       const ok=confirm(`Este respaldo tiene ${x.accounts.length} cuentas y ${x.movements.length} movimientos. RESTAURARLO REEMPLAZARÁ TODOS LOS DATOS ACTUALES en este navegador. Antes exporta un respaldo actual. ¿Continuar?`);
@@ -1003,6 +925,8 @@
       case 'add-budget':budgetForm();break;case 'remove-budget':if(confirm('¿Eliminar este límite?')){await remove('budgets',target.dataset.id);}break;
       case 'drive-sync':if(!drive?.ready)notify('Conecta Google Drive desde Ajustes.');else {drive.dirty=true;await drive.sync();}break;
       case 'drive-reconnect':settingsModal();notify('Escribe nuevamente la contraseña de cifrado para reconectar.');break;
+      case 'drive-history':await showDriveHistory();break;
+      case 'restore-drive-history':await restoreDriveHistory(target.dataset.id);break;
       case 'request-persistence':await askPersist();break;
       case 'storage-retry':await retryLocal();refreshStorageMessage();break;
     }}catch(err){notify(err.message||'Ocurrió un error');}
@@ -1017,8 +941,8 @@
   async function init(){
     localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow){
-        const missing=['Finance','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow'].filter(name=>!window[name]).join(', ');
+      if(!window.Finance||!window.FinanceBackupModel||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow){
+        const missing=['Finance','FinanceBackupModel','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow'].filter(name=>!window[name]).join(', ');
         throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
       }
       if(!db)db=await openDb();

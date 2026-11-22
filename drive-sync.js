@@ -6,6 +6,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
   const SCOPE='https://www.googleapis.com/auth/drive.appdata';
   const CLOUD_NAME='mi-control-financiero-v2.enc.json';
+  const HISTORY_PREFIX='mi-control-financiero-historial-';
   const BASE='https://www.googleapis.com/drive/v3/files';
   const UPLOAD='https://www.googleapis.com/upload/drive/v3/files';
   const iterations=310000;
@@ -80,6 +81,42 @@
       return (data.files||[]).sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)))[0]||null;
     }
     async readCloud(){if(!this.fileId)return null;return this.request(`${BASE}/${encodeURIComponent(this.fileId)}?alt=media`);}
+    async createEncryptedFile(name,encrypted){
+      const boundary='mcf-'+random().replace(/[^a-zA-Z0-9-]/g,'');
+      const metadata={name,mimeType:'application/json',parents:['appDataFolder']};
+      const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(encrypted)}\r\n--${boundary}--`;
+      return this.request(`${UPLOAD}?uploadType=multipart&fields=id`,{method:'POST',
+        headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body});
+    }
+    async listHistory(){
+      const results=[];let token='';
+      do{
+        const params=new URLSearchParams({spaces:'appDataFolder',
+          q:`name contains '${HISTORY_PREFIX}' and trashed = false`,
+          fields:'nextPageToken,files(id,name,modifiedTime,size)',pageSize:'100'});
+        if(token)params.set('pageToken',token);
+        const page=await this.request(`${BASE}?${params}`);
+        results.push(...(page.files||[]).filter(f=>f.name.startsWith(HISTORY_PREFIX)));
+        token=page.nextPageToken||'';
+      }while(token&&results.length<500);
+      return results.sort((a,b)=>String(b.name).localeCompare(String(a.name)));
+    }
+    async readHistory(id){
+      if(!this.ready||!this.token||!this.password)throw Error('Conecta primero Google Drive.');
+      const files=await this.listHistory();
+      if(!files.some(file=>file.id===id))throw Error('La copia histórica solicitada no existe.');
+      const encrypted=await this.request(`${BASE}/${encodeURIComponent(id)}?alt=media`);
+      return decrypt(encrypted,this.password);
+    }
+    async archivePrevious(encrypted){
+      if(!encrypted?.payload)throw Error('No se pudo verificar la copia cifrada anterior.');
+      const stamp=new Date().toISOString().slice(0,10);
+      const name=HISTORY_PREFIX+stamp+'.enc.json';
+      const list=await this.listHistory();
+      if(list.some(f=>f.name===name))return false;
+      await this.createEncryptedFile(name,encrypted);
+      return true;
+    }
     async connect(clientId,password){
       if(!crypto?.subtle)throw Error('El cifrado necesita HTTPS y un navegador compatible.');
       this.config(clientId);
@@ -145,21 +182,25 @@
       try{
         const remote=await this.readCloud();
         if((remote?.revision||null)!==this.remoteRevision){this.ready=false;this.notify('Conflicto con otra sesión · reconectar');throw Error('El respaldo remoto cambió. No se sobreescribió.');}
-        const current=this.getData();this.dirty=false;
+        const current=this.getData();
         const payload=JSON.stringify(await encrypt(current,this.password));
+        // Save one encrypted restore point per calendar day before replacing
+        // the principal cloud snapshot. A failed archive prevents overwrite.
+        if(this.fileId)await this.archivePrevious(remote);
+        this.dirty=false;
         if(!this.fileId){
-          const boundary='mcf-'+random().replace(/[^a-zA-Z0-9-]/g,'');
-          const metadata={name:CLOUD_NAME,mimeType:'application/json',parents:['appDataFolder']};
-          const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${payload}\r\n--${boundary}--`;
-          const created=await this.request(`${UPLOAD}?uploadType=multipart&fields=id`,{method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body});
+          const created=await this.createEncryptedFile(CLOUD_NAME,JSON.parse(payload));
           this.fileId=created.id;
         }else{
           await this.request(`${UPLOAD}/${encodeURIComponent(this.fileId)}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:payload});
         }
         this.remoteRevision=JSON.parse(payload).revision;
-        this.notify('Sincronizado · Drive protegido');
-      }catch(err){this.dirty=true;throw err;}
-      finally{this.running=false;if(this.ready&&this.dirty)this.schedule();}
+        // Changes made while encryption/upload was underway remain pending.
+        if(!snapshotsEqual(current,this.getData()))this.dirty=true;
+        this.notify(this.dirty?'Cambios nuevos · pendiente de Drive':'Sincronizado · Drive protegido');
+      }catch(err){this.dirty=true;this.ready=false;
+        this.notify('Sin sincronizar · revisa Drive y reconecta');throw err;
+      }finally{this.running=false;if(this.ready&&this.dirty)this.schedule();}
     }
   }
   return {DriveSync,encrypt,decrypt,snapshotSignature,snapshotsEqual};

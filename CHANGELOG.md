@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## [0.9.0] - 2026-11-22
+- Crear copia histórica cifrada diaria antes de sobrescribir el respaldo principal en Drive.
+- Mostrar y recuperar versiones históricas desde Ajustes con doble confirmación antes de reemplazar datos locales.
+- Cancelar sobreescrituras cuando falla el archivado y evitar reintentos automáticos continuos tras errores.
+- Extraer captura, validación y restauración atómica a `features/backup/backup-model.js`, reduciendo responsabilidades de `app.js`.
+- Conservar esquema 6 y añadir pruebas de regresión para el nuevo flujo de respaldo.
+
+
 ## [0.8.1] - 2026-11-22
 - Mostrar una advertencia en la cuenta cuando el dinero reservado en cajitas supera su saldo bancario actual.
 - Reconocer pagos realizados exactamente en la fecha de corte como aplicables al mismo corte.

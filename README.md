@@ -1,3 +1,26 @@
+# Mi Control Financiero · PWA v0.9.0 — Respaldos históricos y modularización
+
+## Historial de Google Drive
+- Al sincronizar una modificación sobre el archivo principal cifrado, el sistema intenta guardar antes una **copia cifrada del respaldo anterior**. Se conserva una copia por día, en el espacio privado de datos de aplicación de Google Drive.
+- No se eliminan copias antiguas automáticamente. Las versiones ocupan espacio de tu cuota gratuita de Drive, por lo que conviene revisar el almacenamiento disponible.
+- Si no puede completarse el archivado previo, la escritura sobre el respaldo principal se cancela y los datos nuevos permanecen localmente. La interfaz solicita revisar Drive y reconectar.
+- **Ajustes → Historial de copias:** consulta versiones, revisa una y, con confirmación explícita, restaura el contenido local de una copia descifrada.
+- La recuperación puede reemplazar tus datos locales. **Antes de restaurar, exporta un JSON del estado actual** y conserva la contraseña de cifrado.
+- No se instala ninguna contraseña bancaria, client secret ni token en GitHub. No se incorporan costos obligatorios de backend.
+
+## Refactorización
+- `features/backup/backup-model.js` se encarga de capturar, validar y reemplazar atómicamente los respaldos de IndexedDB. `app.js` coordina las acciones y las vistas, sin reimplementar esas reglas.
+- La estructura de IndexedDB permanece en versión 6. El formato de respaldo JSON conserva el esquema 6.
+- Se añadieron pruebas automatizadas para validar cifrado, recuperación, archivado preventivo y comportamiento seguro ante un error de archivado.
+
+## Limitaciones conocidas
+- Las copias históricas se crean antes de sobrescribir el respaldo y se limitan a **una por día**, no a una por modificación. No reemplazan tu copia JSON independiente.
+- Dos sesiones de Drive con modificaciones exactamente simultáneas todavía necesitan control de escritura condicional en el servidor para garantizar ausencia de carreras. La revisión de `revision` reduce riesgos, pero no es un bloqueo transaccional.
+- La PWA cerrada no se sincroniza; para recuperar versiones es necesario reconectar y autorizar Google Drive.
+- Esta fase no constituye una auditoría externa de penetración ni una restauración verificada en tu cuenta real.
+
+---
+
 # Mi Control Financiero · PWA v0.8.1
 
 La vista de cuenta avisa cuando el dinero reservado en cajitas es mayor que el saldo bancario. Los pagos realizados en la fecha misma del corte se aplican correctamente. No se modifican datos ni estructura de respaldos.
