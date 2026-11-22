@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## [0.12.0] - 2026-11-22
+- Informes interactivos de ingresos/compras, categorías, patrimonio y crédito.
+- Filtros por periodo y cuenta, datos incompletos identificados y consultas por categoría.
+- Operaciones y saldos con respaldo local sin migraciones.
+
+
 ## [0.11.2] - 2026-11-22
 - Corrección de desbordamiento en menús visuales de movimientos y categorías (Android).
 - Altura adaptable de tarjetas, filas de cuadrícula según contenido y desplazamiento seguro dentro del modal.

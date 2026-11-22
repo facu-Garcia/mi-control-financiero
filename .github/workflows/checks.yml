@@ -43,6 +43,9 @@ jobs:
           node --check features/finance/forms.js
           node --check features/finance/transaction-forms.js
           node --check test-transaction-forms.cjs
+          node --check features/reports/report-model.js
+          node --check features/reports/report-view.js
+          node --check test-reports.cjs
           node --check features/dashboard/dashboard.js
           node --check features/ui/account-picker.js
           node --check test-ui-v42.cjs
@@ -77,6 +80,7 @@ jobs:
           node test-audit.cjs
           node test-transaction-forms.cjs
           node test-cards.cjs
+          node test-reports.cjs
           node test-finance-v4.cjs
           node test-billing.cjs
           node test-v7.cjs
