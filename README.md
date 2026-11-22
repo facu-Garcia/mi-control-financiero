@@ -1,3 +1,18 @@
+# Mi Control Financiero · PWA v0.9.1 — Controladores de formularios
+
+## Refactorización segura
+- Los formularios de cuentas y movimientos se extraen de `app.js` a `features/finance/transaction-forms.js`.
+- `app.js` conserva los puntos de entrada y delega la interfaz y la validación; el módulo recibe dependencias explícitas y el estado actualizado en cada apertura.
+- El esquema de IndexedDB y respaldo continúa en la versión 6, sin migración de datos ni cambios deliberados en el cálculo de saldos, cortes o MSI.
+- Se agregaron comprobaciones de carga, integración y regresiones adaptadas al nuevo módulo.
+
+## Comprobaciones pendientes fuera de CI
+- Validación visual y de flujos reales en Android/Chrome: creación/edición de cuentas, tarjetas, movimientos, pagos a corte, transferencias e imágenes.
+- Validación contra una cuenta de Google Drive de prueba, especialmente recuperación, conflictos y apertura simultánea en dispositivos.
+- Antes de actualizar con datos reales, exportar respaldo JSON y verificar la restauración en un entorno de prueba.
+
+---
+
 # Mi Control Financiero · PWA v0.9.0 — Respaldos históricos y modularización
 
 ## Historial de Google Drive
