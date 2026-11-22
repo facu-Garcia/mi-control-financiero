@@ -1,5 +1,10 @@
 # Historial de cambios
 
+## [0.11.1] - 2026-11-22
+- Selectores modales visuales de tipo de movimiento y categoría, con iconos y estados seleccionados.
+- Conserva formularios financieros y registros existentes, mejora navegación móvil y por teclado.
+
+
 ## [0.11.0] - 2026-11-22
 - Rediseño del inicio y navegación hacia Planear mi mes.
 - Plan mensual con ingresos reales frente a previstos, gastos, vencimientos y límites.

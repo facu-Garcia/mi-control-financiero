@@ -15,7 +15,17 @@ assert.match(app,/formController\.movementForm\(preferredAccountId,preferredType
 assert.match(moduleText,/if\(existing\?\.pocketId\)/);
 assert.match(moduleText,/modificando el saldo o fecha inicial/);
 assert.ok(html.indexOf('transaction-forms.js')<html.indexOf('app.js?v='));
-assert.ok(sw.includes('transaction-forms.js?v=0.9.1'));
+assert.ok(sw.includes('transaction-forms.js?v=0.11.1'));
+assert.ok(html.indexOf('movement-picker.js')<html.indexOf('transaction-forms.js'));
+assert.ok(html.includes('movement-picker.css?v=0.11.1'));
+assert.ok(sw.includes('movement-picker.js?v=0.11.1'));
+const picker=require('./features/ui/movement-picker.js');
+assert.equal(typeof picker.enhance,'function');
+assert.equal(picker.meta('type','expense').icon,'↗');
+assert.equal(picker.meta('category','Transporte').icon,'🚇');
+assert.match(picker.optionMarkup({value:'expense',textContent:'Gasto'},'type','expense'),/aria-pressed="true"/);
+assert.ok(!picker.optionMarkup({value:'unsafe',textContent:'<img src=x>'},'category','').includes('<img'));
+assert.match(moduleText,/FinanceMovementPicker\?\.enhance\(f\)/);
 const modulePaths=[...html.matchAll(/<script src="(\.\/[^\"]+)" defer><\/script>/g)].map(m=>m[1].split('?')[0].slice(2));
 for(const path of modulePaths)assert.ok(fs.existsSync(path),'Script inexistente: '+path);
 console.log('✓ Formularios delegados, orden de carga, dependencias y compatibilidad con pruebas de auditoría');
