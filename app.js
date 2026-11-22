@@ -229,7 +229,7 @@
   }
   function enhanceAccountPickers(root){if(AccountPicker?.enhance)AccountPicker.enhance(root,state.accounts);}
   function renderInsight(){
-    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:state.movements,month:selectedMonth,accountId:insightAccount,F,I:Insight,esc,money,monthName});
+    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:state.movements,month:selectedMonth,accountId:insightAccount,recurrences:state.recurrences,F,I:Insight,esc,money,monthName});
     enhanceAccountPickers(main);
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));

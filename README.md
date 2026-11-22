@@ -1,3 +1,9 @@
+# Mi Control Financiero · PWA v0.4.3
+
+El indicador **Estimación para gastar** abre el detalle de Patrimonio, que desglosa dinero líquido, deuda de tarjetas y próximos pagos recurrentes conocidos. Es una referencia conservadora, no una cantidad garantizada; exige cuentas, deudas y movimientos al día.
+
+---
+
 # Mi Control Financiero · PWA v0.4.2
 
 ### Resumen más limpio

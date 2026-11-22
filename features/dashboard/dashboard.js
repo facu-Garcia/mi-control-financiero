@@ -24,7 +24,15 @@
     let body='';
     if(kind==='wealth'){
       const wealth=series.filter(x=>x.net!==null).map(x=>({name:monthName(x.month).split(' ')[0].slice(0,3),value:x.net}));
-      body=plot('Patrimonio estimado: '+M(t.netWorth),line(wealth,M,E))+plot('Distribución de dinero',bars(chosen.filter(a=>a.type!=='credit').map(a=>({name:a.name,value:F.accountBalance(a,active)})),M,E));
+      const applicable=(opt.recurrences||[]).filter(r=>ids.has(r.accountId));
+      const power=I.spendingPower(F,chosen,active,applicable);
+      body=plot('Disponible estimado para gastar: '+M(power.spendable),
+        '<div class="report-line"><span>Dinero en débito y efectivo</span><b>'+M(power.liquid)+'</b></div>'+
+        '<div class="report-line"><span>Menos deuda de tarjetas</span><b>−'+M(power.reservedDebt)+'</b></div>'+
+        '<div class="report-line"><span>Menos cargos recurrentes conocidos por pagar este mes</span><b>−'+M(power.scheduled)+'</b></div>'+
+        '<p class="footnote">Disponible orientativo a la fecha actual; no incluye ingresos futuros ni gastos que aún no hayas registrado. La reserva de deuda es conservadora.</p>')+
+        plot('Patrimonio estimado: '+M(t.netWorth),line(wealth,M,E))+
+        plot('Distribución de dinero',bars(chosen.filter(a=>a.type!=='credit').map(a=>({name:a.name,value:F.accountBalance(a,active)})),M,E));
     }else if(kind==='income'){
       body=plot('Ingresos del mes: '+M(b.income),bars(months,M,E))+plot('Por cuenta',bars(chosen.map(a=>({name:a.name,value:active.filter(m=>m.type==='income'&&m.date.slice(0,7)===month&&m.accountId===a.id).reduce((s,m)=>s+m.amount,0)})).filter(x=>x.value),M,E));
     }else if(kind==='purchases'){

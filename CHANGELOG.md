@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## [0.4.3] - 2026-11-21
+
+### Claridad financiera
+- Al tocar la franja «Estimación para gastar», el detalle de Patrimonio ahora explica su cálculo: efectivo y débito, menos deuda estimada de crédito, menos compromisos recurrentes pendientes.
+- El filtro por cuenta también limita las reglas recurrentes usadas en el cálculo.
+- Se mantiene el resumen principal compacto; la explicación completa se reserva para la pantalla de detalle.
+
+
 ## [0.4.2] - 2026-11-21
 
 ### Diseño y experiencia
