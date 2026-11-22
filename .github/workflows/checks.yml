@@ -54,12 +54,14 @@ jobs:
           node --check test-csv.cjs
           node --check test-drive.cjs
           node --check test-storage.cjs
+          node --check test-audit.cjs
       - name: Ejecutar pruebas financieras
         run: |
           node test-logic.cjs
           node test-csv.cjs
           node test-drive.cjs
           node test-storage.cjs
+          node test-audit.cjs
           node test-cards.cjs
           node test-finance-v4.cjs
           node test-billing.cjs

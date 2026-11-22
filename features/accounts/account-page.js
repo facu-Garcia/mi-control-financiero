@@ -33,7 +33,7 @@
         <div class="report-line"><span>Próximo corte ${next?.official?'confirmado':'estimado'}</span><b>${E(next?.date||'Sin configurar')}</b></div>
         <div class="account-page-actions"><button class="primary" data-action="pay-card" data-id="${E(a.id)}">Pagar tarjeta</button>
          <button class="secondary" data-action="billing-detail" data-id="${E(a.id)}">Administrar cortes y MSI</button></div>
-        <small class="help">La deuda inicial no confirma automáticamente el pago de un corte. Puedes asignarla al periodo actual sin duplicar importes.</small>
+        <small class="help">La deuda inicial se asigna al primer mes registrado sin crear otro cargo. Puedes corregir las fechas y el importe en Cortes y MSI.</small>
       </div></section>
       <div class="account-page-actions"><button class="secondary" data-action="account-move" data-id="${E(a.id)}">Registrar compra</button>
       <button class="secondary" data-action="reconcile" data-id="${E(a.id)}">Conciliar saldo</button></div>`+movementsPart;

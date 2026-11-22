@@ -1,5 +1,15 @@
 # Historial de cambios
 
+## [0.8.0] - 2026-11-22
+- Estabilizar detección de cambios del respaldo Drive en todas las colecciones.
+- Evitar duplicados CSV cuando se reordenan registros y mantener importaciones antiguas.
+- Corregir informes históricos y cargos MSI sin día de corte configurado.
+- Separar deuda exigible de proyecciones futuras potencialmente incluidas.
+- Permitir vínculo a corte base automático y proteger cambios destructivos del saldo inicial.
+- Excluir recurrentes pendientes de presupuestos y evitar respuestas HTML a recursos offline.
+- Integrar pruebas automatizadas de regresión de auditoría.
+
+
 ## [0.7.3] - 2026-11-22
 - Mostrar la deuda inicial automáticamente como importe a pagar del mes financiero base, con fecha de corte y vencimiento prellenados.
 - Eliminar casilla redundante y simplificar el formulario de corte a mes, fechas e importe editable.

@@ -1,3 +1,28 @@
+# Mi Control Financiero · PWA v0.8.0 — estabilización
+
+## Correcciones de integridad (sin migración de base de datos)
+- Comparación integral de instantáneas cifradas en Drive: cuentas, movimientos, preferencias, presupuestos, suscripciones, conciliaciones, auditorías, nómina, cortes, MSI, cajitas y movimientos internos. Una diferencia fuerza revisión del conflicto en vez de mostrar una sincronización engañosa.
+- Importación CSV con identidad estable independiente del orden de filas, referencias bancarias preferentes y compatibilidad con importaciones CSV anteriores. Importar un archivo reordenado no debería volver a crear los mismos cargos.
+- Los informes JSON mensuales calculan el saldo a la fecha de cierre del mes solicitado. Cuentas todavía no existentes en esa fecha muestran `balance: null`.
+- Cuando falta día de corte, la aplicación calcula temporalmente los cargos por mes calendario en lugar de ignorar mensualidades antiguas.
+- En el resumen se prioriza la obligación conocida pendiente sobre las proyecciones de MSI cuando hay saldo sin liquidar, para reducir riesgos de contar dos veces una mensualidad ya incluida en la deuda. Los indicadores de deuda contable permanecen independientes.
+- Pagos asociados al corte inicial virtual pueden guardarse y restaurarse, incluso cuando el corte no fue creado explícitamente.
+- Aviso antes de cambiar la deuda inicial o fecha base de cuentas con movimientos o compromisos y protección al eliminar cuentas con otras referencias.
+- Presupuestos excluyen cargos recurrentes que todavía no se han confirmado.
+- La PWA no devuelve HTML al buscar archivos JavaScript/CSS sin conexión; solo usa el documento de inicio como alternativa para navegación.
+
+## Compatibilidad y seguridad
+- No cambia el esquema IndexedDB (versión 6) ni la estructura del respaldo JSON (esquema 6).
+- No almacena datos financieros reales en GitHub.
+- Los datos existentes permanecen en el navegador; antes de actualizar conviene exportar un respaldo JSON privado y comprobar sincronización de Drive.
+- Las fechas de vencimiento habituales y la atribución provisional sin corte son estimaciones, no fechas confirmadas por el banco.
+- Se agregan pruebas de regresión a GitHub Actions para conflictos, CSV, MSI y saldos históricos.
+
+## Pendientes para próximos ciclos
+La sincronización con Drive aún necesita control transaccional de modificaciones simultáneas, historial de versiones, pruebas reales en distintos navegadores y flujos completos de conciliación. No interpretes un resultado verde de CI como prueba de recuperación de tus datos reales.
+
+---
+
 # Mi Control Financiero · PWA v0.7.3
 
 ## Correcciones del corte inicial y del historial

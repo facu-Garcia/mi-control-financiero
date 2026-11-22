@@ -28,6 +28,31 @@
       return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},key,encrypted)));
     }catch{throw Error('No se pudo descifrar el respaldo. Verifica tu contraseña de cifrado.');}
   }
+  // Compare ALL persisted stores, not only accounts and movements. Sorting
+  // record keys avoids false conflicts caused by IndexedDB getAll order.
+  const SNAPSHOT_STORES=['accounts','movements','budgets','recurrences','reconciliations','audits',
+    'payrollProfiles','billingCycles','legacyInstallments','pockets','pocketMoves'];
+  function stable(value){
+    if(Array.isArray(value)){
+      const rows=value.map(stable);
+      return rows.every(x=>x&&typeof x==='object'&&!Array.isArray(x)&&typeof x.id==='string')
+        ?rows.sort((a,b)=>a.id.localeCompare(b.id)):rows;
+    }
+    if(value&&typeof value==='object'){
+      const ordered={};
+      for(const k of Object.keys(value).sort())ordered[k]=stable(value[k]);
+      return ordered;
+    }
+    return value;
+  }
+  function snapshotSignature(input){
+    if(!input||typeof input!=='object')throw Error('Respaldo no reconocido.');
+    const payload={kind:input.kind||'',schemaVersion:input.schemaVersion||0,currency:input.currency||'MXN'};
+    for(const name of SNAPSHOT_STORES)payload[name]=stable(Array.isArray(input[name])?input[name]:[]);
+    payload.settings=stable(input.settings||{});
+    return JSON.stringify(payload);
+  }
+  function snapshotsEqual(a,b){return snapshotSignature(a)===snapshotSignature(b);}
   class DriveSync {
     constructor({getData,restore,onStatus}){
       this.getData=getData;this.restore=restore;this.onStatus=onStatus;this.token='';this.password='';this.fileId=null;this.remoteRevision=null;
@@ -101,8 +126,7 @@
       const cloud=await this.readCloud();
       const restored=await decrypt(cloud,this.password);
       const local=this.getData();
-      const comparable=v=>JSON.stringify({accounts:v.accounts||[],movements:v.movements||[],settings:v.settings||{},budgets:v.budgets||[]});
-      const same=comparable(restored)===comparable(local);
+      const same=snapshotsEqual(restored,local);
       this.remoteRevision=cloud.revision;
       if(!same){
         this.ready=false;this.notify('Diferencias detectadas · elige versión');
@@ -138,5 +162,5 @@
       finally{this.running=false;if(this.ready&&this.dirty)this.schedule();}
     }
   }
-  return {DriveSync,encrypt,decrypt};
+  return {DriveSync,encrypt,decrypt,snapshotSignature,snapshotsEqual};
 });

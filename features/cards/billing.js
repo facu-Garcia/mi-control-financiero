@@ -68,7 +68,10 @@
       .reduce((sum,c)=>sum+Math.max(0,officialRemaining(card,c,movements,all)),0);
     const thisMonth=all.some(c=>c.month===month);
     const estimate=!thisMonth&&F?F.statementCharges(card,movements,month,cycles,legacy).total:0;
-    return {confirmed:open,estimated:estimate,total:open+estimate};
+    // Never add an unconfirmed projection to an already outstanding cycle:
+    // legacy MSI may be part of the opening balance. Keep both values visible
+    // to consumers, but prioritize the payable obligation for the main metric.
+    return {confirmed:open,estimated:estimate,total:open>0?open:estimate,hasProjection:estimate>0};
   }
   function validateCycle(c,accounts){
     if(!accounts.some(a=>a.id===c.accountId&&a.type==='credit'))throw Error('Selecciona una tarjeta de crédito.');

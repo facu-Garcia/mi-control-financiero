@@ -70,6 +70,22 @@
     });
     return {items:imported,skipped,total:items.length};
   }
+  // Stable identity independent of CSV row number. Repeated identical rows
+  // use an occurrence index so legitimate same-day payments are preserved.
+  function movementKey(m){
+    return JSON.stringify([String(m.accountId||''),String(m.toAccountId||''),String(m.date||''),
+      String(m.type||''),m.amount,Number(m.months||1),
+      m.type==='expense'?clean(m.category||'Otros'):'',
+      clean(m.description||'')]);
+  }
+  function hashKey(value){
+    let h=0xcbf29ce484222325n;
+    for(let i=0;i<value.length;i++){
+      h^=BigInt(value.charCodeAt(i));
+      h=BigInt.asUintN(64,h*0x100000001b3n);
+    }
+    return h.toString(16).padStart(16,'0');
+  }
   function movements(text,accounts,existing=[]){
     const rows=parse(text);if(!rows.length)throw Error('No hay movimientos en el archivo.');
     for(const h of ['fecha','tipo','importe_mxn'])if(!Object.hasOwn(rows[0],h))throw Error('Falta la columna '+h+'.');
@@ -77,6 +93,11 @@
     const byId=new Map(accounts.map(a=>[a.id,a]));
     function find(s){const q=clean(s);return byId.get(s)||accounts.find(a=>clean(a.name)===q);}
     const known=new Set(existing.map(m=>m.id));const imported=[];let skipped=0;
+    const existingCounts=new Map(),incomingCounts=new Map();
+    for(const m of existing){
+      if(typeof m.id!=='string'||(!m.id.startsWith('csv-row:')&&!m.id.startsWith('csv-v2:')))continue;
+      const key=movementKey(m);existingCounts.set(key,(existingCounts.get(key)||0)+1);
+    }
     rows.forEach((r,i)=>{
       const row=i+2,t=txType(r.tipo),accountName=r.cuenta||r.cuenta_origen,from=find(accountName),to=find(r.cuenta_destino);
       if(!date(r.fecha)||!t||!from)throw Error(`Fila ${row}: revisa fecha (AAAA-MM-DD), tipo y cuenta.`);
@@ -87,9 +108,17 @@
       if((t==='income'||t==='yield')&&from.type==='credit')throw Error(`Fila ${row}: los ingresos no pueden ir a una tarjeta de crédito.`);
       const months=Number(r.meses_msi||1);
       if(!Number.isInteger(months)||months<1||months>120||(months>1&&(t!=='expense'||from.type!=='credit')))throw Error(`Fila ${row}: meses MSI inválidos.`);
-      const ref=String(r.referencia||'').trim();const ident=ref?`csv-ref:${ref}`:`csv-row:${clean(accountName)}:${r.fecha}:${r.tipo}:${r.importe_mxn}:${i+2}:${String(r.descripcion||'').slice(0,80)}`;
-      if(known.has(ident)){skipped++;return;}known.add(ident);
-      imported.push({id:ident,type:t,date:r.fecha,accountId:from.id,toAccountId:to?.id||'',amount:n,months,category:t==='expense'?String(r.categoria||'Otros').slice(0,100):'',description:String(r.descripcion||'').slice(0,200),createdAt:new Date().toISOString()});
+      const candidate={type:t,date:r.fecha,accountId:from.id,toAccountId:to?.id||'',amount:n,months,
+        category:t==='expense'?String(r.categoria||'Otros').slice(0,100):'',description:String(r.descripcion||'').slice(0,200)};
+      const ref=String(r.referencia||'').trim();
+      const key=movementKey(candidate),occurrence=(incomingCounts.get(key)||0)+1;
+      incomingCounts.set(key,occurrence);
+      // A reference supplied by the bank remains the strongest identity.
+      // For reference-less rows, include the occurrence but not the row order.
+      const ident=ref?`csv-ref:${ref}`:`csv-v2:${hashKey(key)}:${occurrence}`;
+      if(known.has(ident)||(!ref&&occurrence<=(existingCounts.get(key)||0))){skipped++;return;}
+      known.add(ident);
+      imported.push({id:ident,...candidate,createdAt:new Date().toISOString()});
     });
     return {items:imported,skipped,total:rows.length};
   }
