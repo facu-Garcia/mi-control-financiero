@@ -1,3 +1,15 @@
+# Mi Control Financiero · v0.10.1 — Corrección de la agenda financiera
+
+- La **agenda** ahora contiene exclusivamente movimientos efectivamente registrados; no mezcla cortes estimados, ingresos futuros ni cargos automáticos pendientes.
+- Las **obligaciones del mes elegido** se muestran según la fecha límite de pago, incluso cuando ésta cae en el mes siguiente al corte. Por ejemplo, los pagos con vencimiento el 1 y el 5 de diciembre aparecen en diciembre, no como pagos de noviembre.
+- La estimación de liquidez para **los siguientes 30 días** se muestra separada y con su fecha inicial y final expresas; puede abarcar varios meses independientemente del mes consultado.
+- Nómina prevista y fechas de corte están en una sección opcional de **referencias**. No se presentan como transacciones confirmadas.
+- El selector presenta el **mes y año completos**; diseño compacto con botón de agregar menos intrusivo.
+- Si una deuda no tiene importe o vencimiento asignable, se avisa. No se inventan importes ni se interpretan fechas habituales como confirmaciones bancarias.
+- Cambios exclusivamente de consulta; esquema IndexedDB v6, respaldo JSON v6 y Google Drive sin migración.
+
+---
+
 # Mi Control Financiero v0.10.0 — Calendario y capacidad financiera
 
 - Nuevo calendario financiero informativo desde **Resumen** y **Informes**; muestra cortes, pagos de tarjeta, suscripciones y nómina prevista por fecha.
