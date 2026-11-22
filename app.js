@@ -421,7 +421,7 @@
     if(!a)return;
     const today=localDate();
     const expected=F.accountBalance(a,state.movements.filter(m=>m.date<=today));
-    const history=state.reconciliations.filter(r=>r.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date)||y.createdAt.localeCompare(x.createdAt)).slice(0,20);
+    const history=state.reconciliations.filter(r=>r.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date)||String(y.createdAt||'').localeCompare(String(x.createdAt||''))).slice(0,20);
     const historyMarkup=history.length?'<div class="section-title"><h2>Últimas conciliaciones</h2></div><div class="panel">'+history.map(r=>{
       const current=F.accountBalance(a,state.movements.filter(m=>m.date<=r.date));
       const outdated=current!==r.expected;
