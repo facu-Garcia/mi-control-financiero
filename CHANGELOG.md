@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## [0.10.0] - 2026-11-22
+- Añadir planificación financiera con calendario por mes y desglose de capacidad de pago para 30 días.
+- Visualizar fechas estimadas y confirmadas de nómina, pagos recurrentes, cortes y pagos de tarjetas sin escribir movimientos.
+- Separar dinero actual, cajitas reservadas y compromisos conocidos sin contabilizar dos veces las compras a MSI.
+- Añadir pruebas del motor de planificación y caché PWA.
+- Conservar las estructuras de datos existentes.
+
+
 ## [0.9.2] - 2026-11-22
 - Registrar modificaciones de movimientos y auditoría en una misma transacción IndexedDB, con cancelación completa ante fallo.
 - Detectar ediciones concurrentes sobre registros ya cambiados en el almacenamiento.
