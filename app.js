@@ -115,11 +115,11 @@
   // Presentación independiente en card-designs.js; la lógica de saldos sigue en logic.js.
   function cardTile(a){return Cards.render(a);}
   function creditCards(rows){
-    return rows.map(a=>CreditRow.render(a,{F,B:Billing,cycles:state.billingCycles,movements:state.movements,
+    return rows.map(a=>CreditRow.render(a,{F,B:Billing,cycles:state.billingCycles,movements:todayMovements(),
       today:localDate(),esc,money,bankIcon:(card)=>{const t=badgeFor(card);return '<div class="account-icon brand-icon" style="--bank:'+esc(t.color)+'">'+esc(t.label.slice(0,3))+'</div>';}})).join('');
   }
   function accountList(accs,clickable=true){return accs.length?accs.map(a=>{
-    const balance=F.accountBalance(a,state.movements),credit=a.type==='credit',theme=badgeFor(a);
+    const balance=F.accountBalanceAt(a,state.movements,localDate())??0,credit=a.type==='credit',theme=badgeFor(a);
     const missing=credit&&(a.cutDay===0||a.creditLimit===0);
     return `<div class="account-row"><div class="account-icon brand-icon" style="--bank:${esc(theme.color)}">${esc(theme.label.slice(0,3))}</div><div class="row-body"><div class="row-title">${esc(a.name)} <span class="mini-type">${credit?'Crédito':a.type==='debit'?'Débito':accountTypes[a.type]}</span></div><div class="row-sub">${esc(a.institution||accountTypes[a.type])}${missing?' · <span class="warning-text">Configuración pendiente</span>':''}</div></div><div class="row-amount ${credit?'negative':''}">${money(balance)}<small>${credit?'Deuda estimada':'Saldo estimado'}</small></div>${clickable?`<button class="iconbtn" data-action="account-detail" data-id="${esc(a.id)}" aria-label="Detalle de cuenta">›</button>`:''}</div>`;
   }).join(''):blank('Todavía no hay cuentas registradas.','add-account');}
@@ -486,7 +486,7 @@
   }
   function enhanceAccountPickers(root){if(AccountPicker?.enhance)AccountPicker.enhance(root,state.accounts);}
   function renderInsight(){
-    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:state.movements,month:selectedMonth,accountId:insightAccount,recurrences:state.recurrences,cycles:state.billingCycles,legacy:state.legacyInstallments,pockets:state.pockets,pocketMoves:state.pocketMoves,P:Pockets,B:Billing,F,I:Insight,esc,money,monthName});
+    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:todayMovements(),month:selectedMonth,accountId:insightAccount,recurrences:state.recurrences,cycles:state.billingCycles,legacy:state.legacyInstallments,pockets:state.pockets,pocketMoves:state.pocketMoves,P:Pockets,B:Billing,F,I:Insight,esc,money,monthName});
     enhanceAccountPickers(main);
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
