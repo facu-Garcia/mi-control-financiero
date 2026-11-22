@@ -419,12 +419,24 @@
   function reconcileForm(accountId){
     const a=getAccount(accountId);
     if(!a)return;
-    const expected=F.accountBalance(a,state.movements);
-    openModal('Conciliación bancaria',Forms.reconcileForm(a,expected,money,val,esc,localDate()));
+    const today=localDate();
+    const expected=F.accountBalance(a,state.movements.filter(m=>m.date<=today));
+    const history=state.reconciliations.filter(r=>r.accountId===a.id).sort((x,y)=>y.date.localeCompare(x.date)||y.createdAt.localeCompare(x.createdAt)).slice(0,20);
+    const historyMarkup=history.length?'<div class="section-title"><h2>Últimas conciliaciones</h2></div><div class="panel">'+history.map(r=>{
+      const current=F.accountBalance(a,state.movements.filter(m=>m.date<=r.date));
+      const outdated=current!==r.expected;
+      return '<div class="report-line"><span><b>'+esc(shortDate(r.date))+'</b><br><small>Banco: '+money(r.actual)+' · Calculado entonces: '+money(r.expected)+'</small>'
+        +(r.note?'<br><small>'+esc(r.note)+'</small>':'')
+        +(outdated?'<br><small class="warning-text">Revisar: el histórico de movimientos cambió. Saldo recalculado: '+money(current)+'</small>':'')
+        +'</span><b class="'+(r.difference?'negative':'positive')+'">'+(r.difference>0?'+':'')+money(r.difference)+'</b></div>';
+    }).join('')+'</div>':'<p class="help">Todavía no has registrado conciliaciones para esta cuenta.</p>';
+    openModal('Conciliación bancaria',Forms.reconcileForm(a,expected,money,val,esc,today)+historyMarkup);
     document.querySelector('#reconcile-form [name="date"]').addEventListener('change',e=>{
       const day=e.target.value;
       const text=document.getElementById('reconcile-expected');
       if(text)text.textContent=day<a.balanceDate?'Anterior a la fecha base':money(F.accountBalance(a,state.movements.filter(m=>m.date<=day)));
+      // La cifra bancaria nunca se infiere: debe capturarse para la fecha elegida.
+      document.querySelector('#reconcile-form [name="actual"]').value='';
     });
     document.getElementById('reconcile-form').addEventListener('submit',async e=>{
       e.preventDefault();try{
