@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.9.2] - 2026-11-22
+- Registrar modificaciones de movimientos y auditoría en una misma transacción IndexedDB, con cancelación completa ante fallo.
+- Detectar ediciones concurrentes sobre registros ya cambiados en el almacenamiento.
+- Exigir captura explícita del saldo observado para la conciliación y mostrar historial con alertas ante cambios retrospectivos.
+- Extender suite de regresión y versiones de recursos PWA.
+
+
 ## [0.9.1] - 2026-11-22
 - Extraer controladores de cuenta y movimiento al módulo `features/finance/transaction-forms.js` y reducir `app.js` sin alterar las reglas financieras.
 - Inyectar estado actualizado y dependencias explícitas para facilitar pruebas y mantenimiento.
