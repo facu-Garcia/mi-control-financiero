@@ -54,5 +54,35 @@
       }
     });
   }
-  return {openDatabase};
+  // Movimiento e historial se guardan juntos, sin auditorías huérfanas.
+  function changeMovement(database,{before=null,after=null,auditId='',date=''}){
+    const movementId=before?.id||after?.id;
+    if(typeof movementId!=='string'||!movementId||before&&after&&before.id!==after.id)
+      return Promise.reject(Error('Movimiento inválido para guardar.'));
+    if(before&&(typeof auditId!=='string'||!auditId||typeof date!=='string'||!date))
+      return Promise.reject(Error('Faltan datos de auditoría.'));
+    return new Promise((resolve,reject)=>{
+      let tx,reason=null;
+      try{
+        tx=database.transaction(['movements','audits'],'readwrite');
+        tx.oncomplete=()=>resolve();
+        tx.onerror=()=>reject(reason||tx.error||Error('Error al guardar movimiento.'));
+        tx.onabort=()=>reject(reason||tx.error||Error('Operación financiera cancelada.'));
+        const movements=tx.objectStore('movements');
+        const req=movements.get(movementId);
+        req.onsuccess=()=>{
+          try{
+            const stored=req.result;
+            if(before&&JSON.stringify(stored)!==JSON.stringify(before))
+              throw Error('El movimiento cambió desde que lo abriste. Vuelve a cargar antes de editarlo.');
+            if(!before&&stored!==undefined)
+              throw Error('Ya existe otro movimiento con ese identificador.');
+            if(after)movements.put(after);else movements.delete(movementId);
+            if(before)tx.objectStore('audits').put({id:auditId,movementId,date,before,after});
+          }catch(error){reason=error;try{tx.abort();}catch{reject(error);}}
+        };
+      }catch(error){try{tx?.abort();}catch{}reject(error);}
+    });
+  }
+  return {openDatabase,changeMovement};
 });
