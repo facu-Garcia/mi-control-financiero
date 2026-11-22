@@ -59,6 +59,7 @@ jobs:
           node --check test-drive.cjs
           node --check test-storage.cjs
           node --check test-atomic-movements.cjs
+          node --check test-reconciliation.cjs
           node --check test-audit.cjs
       - name: Ejecutar pruebas financieras
         run: |
@@ -68,6 +69,7 @@ jobs:
           node test-backup-history.cjs
           node test-storage.cjs
           node test-atomic-movements.cjs
+          node test-reconciliation.cjs
           node test-audit.cjs
           node test-transaction-forms.cjs
           node test-cards.cjs
