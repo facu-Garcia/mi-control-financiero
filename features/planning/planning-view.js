@@ -6,15 +6,18 @@
 })(typeof globalThis!=='undefined'?globalThis:this,()=>{
   'use strict';
   const short=s=>s.split('-').reverse().join('/');
-  function render(events,capacity,month,{esc:E,money:M,monthName,references=[],monthly={payments:[],recurringItems:[],total:0,unknown:0}}){
+  function render(events,capacity,month,{esc:E,money:M,monthName,references=[],monthly={payments:[],recurringItems:[],total:0,unknown:0},cycle={items:[],total:0,purchases:0}}){
     const title=monthName(month);
     const inMonth=monthly.payments;
-    const later=capacity.paymentItems.filter(p=>p.date.slice(0,7)!==month);
     const pending=monthly.recurringItems;
     const monthlyTotal=monthly.total;
     const status=e=>e.status==='captured'?'Importe capturado (verificar con banco)':e.status==='pending'?'Pendiente de confirmar':'Estimado; verifica con el banco';
     const entry=e=>'<div class="agenda-entry"><div class="agenda-entry-copy"><b>'+E(e.title)+'</b>'+
       '<small>'+E(short(e.date))+' · '+E(status(e))+'</small>'+(e.detail?'<small>'+E(e.detail)+'</small>':'')+
+      '</div><strong>'+M(e.amount)+'</strong></div>';
+    const cycleEntry=e=>'<div class="agenda-entry"><div class="agenda-entry-copy"><b>'+E(e.title)+'</b>'+
+      '<small>Corte: '+(e.cutDate?E(short(e.cutDate)):'sin fecha')+' · Vence: '+(e.dueDate?E(short(e.dueDate)):'fecha pendiente')+'</small>'+
+      '<small>'+(e.source==='initialDebt'?'Deuda inicial de este corte; no es compra nueva':E(status(e)))+'</small>'+
       '</div><strong>'+M(e.amount)+'</strong></div>';
     const event=e=>'<div class="agenda-entry"><div class="agenda-entry-copy"><b>'+E(e.title)+'</b>'+
       '<small>'+E(short(e.date))+' · '+E(e.detail||'Movimiento registrado')+'</small></div>'+
@@ -36,7 +39,12 @@
       '<section class="panel agenda-panel"><div class="agenda-section-head"><h2>Movimientos registrados</h2>'+
       '<span>'+events.length+'</span></div>'+
       (events.length?events.map(event).join(''):'<p class="help">No hay movimientos efectivos registrados en '+E(title)+'. Las fechas previstas no se consideran operaciones.</p>')+'</section>'+
-      '<section class="panel agenda-panel"><div class="agenda-section-head"><h2>Pagos con vencimiento en '+E(title)+'</h2></div>'+
+      '<section class="panel agenda-panel"><div class="agenda-section-head"><h2>Mes financiero · '+E(title)+'</h2></div>'+
+      '<div class="agenda-summary"><div><small>Compras registradas del mes financiero</small><b>'+M(cycle.purchases)+'</b></div>'+
+      '<div><small>Saldo pendiente asociado a los cortes</small><b>'+M(cycle.total)+'</b></div></div>'+
+      (cycle.items.length?cycle.items.map(cycleEntry).join(''):'<p class="help">No hay saldos de cortes identificados en este mes; las compras podrían no tener un importe de corte confirmado todavía.</p>')+
+      '<p class="footnote">Estos compromisos se muestran por mes de corte aunque venzan después. No son nuevos gastos ni se suman dos veces a las compras registradas.</p></section>'+
+      '<section class="panel agenda-panel"><div class="agenda-section-head"><h2>Pagos que vencen en '+E(title)+'</h2></div>'+
       '<div class="agenda-total"><span>'+E(monthNote)+' · importe conocido o estimado</span><strong>'+M(monthlyTotal)+'</strong></div>'+
       (inMonth.length||pending.length?[...inMonth,...pending].sort((a,b)=>a.date.localeCompare(b.date)).map(entry).join(''):
       '<p class="help">No hay obligaciones con fecha asignada dentro de este mes. Eso no significa que no existan otras deudas.</p>')+
@@ -50,7 +58,6 @@
       '<div><small>Cargos fijos pendientes</small><b>−'+M(capacity.recurringDue)+'</b></div></div>'+
       '<div class="agenda-available"><span>Resto estimado</span><strong>'+M(capacity.available)+'</strong></div>'+
       (capacity.shortfall?'<p class="agenda-shortfall">Faltante frente a compromisos conocidos: '+M(capacity.shortfall)+'</p>':'')+
-      (later.length?'<h3 class="agenda-subtitle">Pagos que vencen fuera de '+E(title)+'</h3>'+later.map(entry).join(''):'')+
       warns+'<p class="footnote">No se suman nóminas futuras ni se registran pagos automáticamente. Los saldos y fechas pueden necesitar conciliación bancaria.</p></section>'+
       refs;
   }

@@ -117,6 +117,30 @@
     return {payments:payments.items,recurringItems,
       total:sum(payments.items)+sum(recurringItems),unknown:payments.unknown};
   }
+
+  // Mostrar el importe asociado al ciclo de corte sin crear otra transacción.
+  function statementCommitments(data,deps,month,today){
+    if(!MONTH.test(month)||!validDate(today))throw Error('Periodo inválido.');
+    const tx=atDate(data.movements,today),cycles=list(data.billingCycles),items=[];
+    for(const card of list(data.accounts).filter(a=>a.type==='credit')){
+      const effective=deps.Billing.effectiveCycles(card,cycles);
+      for(const c of effective.filter(c=>c.month===month)){
+        const remaining=deps.Billing.officialRemaining(card,c,tx,effective);
+        if(!Number.isSafeInteger(remaining)||remaining<=0)continue;
+        const due=validDate(c.dueDate)?c.dueDate:deps.Billing.due(card,month,cycles).date;
+        const cut=validDate(c.cutDate)?c.cutDate:deps.Billing.cut(card,month,cycles).date;
+        const captured=cycles.some(saved=>saved.id===c.id&&saved.amountDue!=null);
+        items.push({id:'statement:'+c.id,accountId:card.id,kind:'statement',title:card.name,
+          amount:remaining,cycleMonth:month,cutDate:validDate(cut)?cut:'',
+          dueDate:validDate(due)?due:'',source:c.source||'bank',
+          status:captured?'captured':'estimated'});
+      }
+    }
+    items.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||a.title.localeCompare(b.title));
+    // El saldo inicial no equivale a compras nuevas registradas.
+    const purchases=deps.F.breakdown(list(data.accounts),tx,month,cycles).purchases;
+    return {month,items,total:sum(items),purchases};
+  }
   function upcomingPayments(data,deps,today,days=30){
     if(!validDate(today))throw Error('Fecha inválida.');
     if(!Number.isInteger(days)||days<1||days>90)throw Error('Horizonte inválido.');
@@ -168,5 +192,5 @@
       obligations:cardsDue+recurringDue,available:Math.max(0,rawAvailable),shortfall:Math.max(0,-rawAvailable),
       paymentItems:payments.items,recurringItems,warnings,unknownPayments:payments.unknown};
   }
-  return {plusDays,monthEnd,calendar,referenceEvents,occurrences,monthPayments,monthlyObligations,upcomingPayments,capacity};
+  return {plusDays,monthEnd,calendar,referenceEvents,occurrences,monthPayments,monthlyObligations,statementCommitments,upcomingPayments,capacity};
 });

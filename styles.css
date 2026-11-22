@@ -19,3 +19,13 @@
 /* Mensajes visibles dentro del diálogo de configuración (los toasts externos pueden quedar detrás de <dialog>). */
 .dialog-notice,.drive-feedback{border-radius:12px;background:#1a4053;border:1px solid #4b8ea4;color:#e2f7ff;padding:11px 12px;font-size:13px;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .drive-feedback[data-error="true"]{background:#472631;border-color:#a15e6a;color:#ffdde5}
+
+/* El campo mensual conserva el selector nativo, con etiqueta propia que no se corta. */
+.page-head>div:first-child{min-width:0}
+.month-picker{position:relative;flex:0 0 clamp(116px,36vw,192px);max-width:45%;height:46px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--txt);font-size:12px;font-weight:650;white-space:nowrap}
+.month-picker-full,.month-picker-short{pointer-events:none;padding:0 7px}
+.month-picker-short{display:none}
+.month-picker #month-control{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer;z-index:1;color-scheme:dark}
+.month-picker:focus-within{outline:2px solid #70dcca;outline-offset:2px}
+@media(max-width:520px){.month-picker-full{display:none}.month-picker-short{display:block}}
+@media(max-width:345px){.page-head h1{font-size:23px}.month-picker{flex-basis:106px;max-width:42%;font-size:11px}}

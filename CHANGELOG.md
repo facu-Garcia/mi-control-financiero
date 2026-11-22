@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## [0.10.2] - 2026-11-22
+- Corregir etiqueta móvil del periodo y mostrar todas las cuentas del resumen.
+- Mostrar mes de corte financiero y fecha límite de pago sin duplicar importes.
+- Separar deuda inicial de nuevas compras y reforzar regresiones de noviembre/diciembre.
+
+
 ## [0.10.1] - 2026-11-22
 - Rediseñar el calendario como agenda de movimientos efectivos, separando compromisos por vencimiento y fechas informativas opcionales.
 - Mostrar pagos de tarjetas en el mes de su fecha límite y distinguirlos del horizonte de capacidad de pago de 30 días.

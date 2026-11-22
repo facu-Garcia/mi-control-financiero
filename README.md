@@ -1,3 +1,14 @@
+# Mi Control Financiero · v0.10.2 — Corte y vencimiento separados
+
+- Selector de mes legible en móvil: «nov 2026» en pantallas estrechas y mes completo en pantallas amplias.
+- Resumen con todas las cuentas de dinero y ahorro, sin límite artificial de cuatro.
+- Agenda con movimientos reales, compras y deuda por mes de corte, vencimientos por fecha límite y capacidad de los próximos 30 días en secciones distintas.
+- Una deuda del corte de noviembre que vence en diciembre se visualiza vinculada al corte de noviembre, y como obligación de pago en diciembre: son vistas distintas de la misma deuda, no gastos nuevos.
+- Las deudas iniciales se distinguen de compras registradas y la proyección no modifica saldos.
+- Sin cambios al esquema de IndexedDB ni a los respaldos privados.
+
+---
+
 # Mi Control Financiero · v0.10.1 — Corrección de la agenda financiera
 
 - La **agenda** ahora contiene exclusivamente movimientos efectivamente registrados; no mezcla cortes estimados, ingresos futuros ni cargos automáticos pendientes.

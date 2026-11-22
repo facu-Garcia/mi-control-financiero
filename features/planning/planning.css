@@ -40,3 +40,7 @@ body:has(.agenda-head) #fab-add{bottom:calc(112px + env(safe-area-inset-bottom))
   .agenda-entry{flex-direction:column;gap:5px}
   .agenda-entry strong{align-self:flex-end}
 }
+
+/* Separación explícita de mes financiero frente a vencimiento. */
+.agenda-panel .agenda-summary{margin:10px 0 13px}
+.agenda-panel .agenda-entry-copy small{line-height:1.4}
