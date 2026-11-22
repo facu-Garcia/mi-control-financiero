@@ -40,7 +40,8 @@
   }
   const all=(pockets||[]).filter(p=>p.parentAccountId===a.id),saved=P.allocated(a.id,pockets,pocketMoves,movements);
   const available=bal-saved;
-  return header+`<section class="account-page-main"><div class="account-balance-label">Saldo total en la cuenta</div>
+  const mismatch=available<0?`<div class="inline-note" role="status">Atención: el dinero reservado en cajitas supera en ${M(-available)} al saldo bancario registrado. Revisa movimientos y saldos antes de apartar más dinero.</div>`:'';
+  return header+mismatch+`<section class="account-page-main"><div class="account-balance-label">Saldo total en la cuenta</div>
     <strong class="account-balance-number">${M(bal)}</strong>
     <div class="account-metrics"><div><small>Disponible para utilizar</small><b>${M(available)}</b></div>
     <div><small>Reservado en cajitas</small><b>${M(saved)}</b></div></div></section>

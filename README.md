@@ -1,3 +1,9 @@
+# Mi Control Financiero · PWA v0.8.1
+
+La vista de cuenta avisa cuando el dinero reservado en cajitas es mayor que el saldo bancario. Los pagos realizados en la fecha misma del corte se aplican correctamente. No se modifican datos ni estructura de respaldos.
+
+---
+
 # Mi Control Financiero · PWA v0.8.0 — estabilización
 
 ## Correcciones de integridad (sin migración de base de datos)

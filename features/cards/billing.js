@@ -104,7 +104,7 @@
       m.date>card.balanceDate&&Number.isSafeInteger(m.amount)&&m.amount>0)
       .sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
     for(const m of linked){
-      const eligible=list.filter(c=>c.cutDate<m.date||((c.source==='initialDebt'||c.estimated)&&c.month===initialMonth(card)));
+      const eligible=list.filter(c=>c.cutDate<=m.date||((c.source==='initialDebt'||c.estimated)&&c.month===initialMonth(card)));
       if(!eligible.length)continue;
       let balance=m.amount;
       const priorities=m.paymentCycleId?

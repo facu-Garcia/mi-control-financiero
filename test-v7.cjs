@@ -54,7 +54,9 @@ assert.equal(F.accountBalance(card,[]),350000);
 const opts={F,B,P,accounts,tx:[],movements:[],cycles:[cycle],legacy:[],pockets:[p],pocketMoves:[transfer],
  today:'2026-11-24',month:'2026-11',esc:String,money:x=>'$'+(x/100).toFixed(2),cardRender:()=>'<div>card</div>',txRender:()=>'<p>Sin movimientos</p>'};
 const page=A.render(debit,opts);
-assert.match(page,/Mis cajitas/);assert.match(page,/Emergencia/);
+assert.match(page,/Mis cajitas/);
+const overspentPage=A.render({...debit,initialBalance:1000},opts);
+assert.match(overspentPage,/supera en/);assert.match(page,/Emergencia/);
 assert.match(page,/account-page-main/);assert.match(page,/536.23/);assert.match(page,/336.23|236.23/);
 const credit=A.render(card,opts);
 assert.match(credit,/Pago del corte/);assert.match(credit,/Pagar tarjeta/);

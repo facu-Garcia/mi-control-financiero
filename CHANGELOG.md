@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.8.1] - 2026-11-22
+- Mostrar una advertencia en la cuenta cuando el dinero reservado en cajitas supera su saldo bancario actual.
+- Reconocer pagos realizados exactamente en la fecha de corte como aplicables al mismo corte.
+- Incorporar prueba de regresión para reserva de cajitas superior al saldo.
+- Mantener compatibilidad con los datos de v0.8.0 sin migraciones adicionales.
+
+
 ## [0.8.0] - 2026-11-22
 - Estabilizar detección de cambios del respaldo Drive en todas las colecciones.
 - Evitar duplicados CSV cuando se reordenan registros y mantener importaciones antiguas.
