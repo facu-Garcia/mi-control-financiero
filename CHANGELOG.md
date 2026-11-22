@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## [0.7.2] - 2026-11-21
+- Al editar un rendimiento de cajita, impedir cambiar la cuenta receptora, el tipo de movimiento o utilizar una fecha incompatible con la creación de la cajita y el saldo inicial. Esto mantiene alineados el saldo del banco y el saldo del apartado.
+
+
 ## [0.7.1] - 2026-11-21
 - Mantener flags de corte originado del saldo inicial y de MSI ya incluidas en deuda al restaurar.
 - Proteger cortes vinculados a pagos contra eliminaciones accidentales.
