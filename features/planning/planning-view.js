@@ -6,12 +6,12 @@
 })(typeof globalThis!=='undefined'?globalThis:this,()=>{
   'use strict';
   const short=s=>s.split('-').reverse().join('/');
-  function render(events,capacity,month,{esc:E,money:M,monthName,references=[]}){
+  function render(events,capacity,month,{esc:E,money:M,monthName,references=[],monthly={payments:[],recurringItems:[],total:0,unknown:0}}){
     const title=monthName(month);
-    const inMonth=capacity.paymentItems.filter(p=>p.date.slice(0,7)===month);
+    const inMonth=monthly.payments;
     const later=capacity.paymentItems.filter(p=>p.date.slice(0,7)!==month);
-    const pending=capacity.recurringItems.filter(p=>p.date.slice(0,7)===month);
-    const monthlyTotal=inMonth.reduce((s,p)=>s+p.amount,0)+pending.reduce((s,p)=>s+p.amount,0);
+    const pending=monthly.recurringItems;
+    const monthlyTotal=monthly.total;
     const status=e=>e.status==='captured'?'Importe capturado (verificar con banco)':e.status==='pending'?'Pendiente de confirmar':'Estimado; verifica con el banco';
     const entry=e=>'<div class="agenda-entry"><div class="agenda-entry-copy"><b>'+E(e.title)+'</b>'+
       '<small>'+E(short(e.date))+' · '+E(status(e))+'</small>'+(e.detail?'<small>'+E(e.detail)+'</small>':'')+
@@ -40,6 +40,7 @@
       '<div class="agenda-total"><span>'+E(monthNote)+' · importe conocido o estimado</span><strong>'+M(monthlyTotal)+'</strong></div>'+
       (inMonth.length||pending.length?[...inMonth,...pending].sort((a,b)=>a.date.localeCompare(b.date)).map(entry).join(''):
       '<p class="help">No hay obligaciones con fecha asignada dentro de este mes. Eso no significa que no existan otras deudas.</p>')+
+      (monthly.unknown?'<p class="footnote">Algunas obligaciones carecen de fechas o importes confirmados y pueden no aparecer aquí.</p>':'')+
       '<p class="footnote">Las fechas límite se agrupan por el mes en que se paga, no por el mes del corte.</p></section>'+
       '<section class="panel agenda-panel"><div class="agenda-section-head"><h2>Próximos 30 días</h2></div>'+
       '<p class="help">Del '+E(short(capacity.today))+' al '+E(short(capacity.end))+'. Este cálculo es independiente del mes seleccionado.</p>'+
