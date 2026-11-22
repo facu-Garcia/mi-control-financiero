@@ -1,3 +1,11 @@
+# Mi Control Financiero · PWA v0.5.1
+
+El importe neto previsto por pago de la cuenta de nómina ahora alimenta el salario previsto mensual en el Resumen e Informes: dos pagos para calendario quincenal o uno mensual. Si el importe previsto de nómina es cero, permanece el importe general de Ajustes. Esto no crea ningún movimiento.
+
+No se registrará un depósito que coincida exactamente en fecha, cuenta y cantidad con un ingreso existente sin clasificar; en ese caso utiliza **Nómina → Clasificar** para evitar dobles registros.
+
+---
+
 # Mi Control Financiero · PWA v0.5.0
 
 ## Módulo privado de nómina

@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## [0.5.1] - 2026-11-21
+- La previsión mensual de nómina se deriva automáticamente del importe por quincena multiplicado por dos, o del importe mensual, cuando la cuenta de nómina está configurada con un monto.
+- Al registrar un pago se detecta un ingreso existente con misma fecha, cuenta e importe sin clasificación de nómina y se sugiere clasificarlo para no duplicar dinero.
+- Actualización del número de versión usado por el test de selector de tarjetas.
+
+
 ## [0.5.0] - 2026-11-21
 
 ### Nómina privada
