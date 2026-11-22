@@ -52,27 +52,72 @@
     return (records||[]).filter(r=>r.accountId===accountId&&r.startMonth<=month&&r.endMonth>=month)
       .reduce((s,r)=>s+r.amount,0);
   }
-  function officialRemaining(card,cycle,movements){
+  // Each card payment is allocated to at most one cycle. Explicit references win;
+  // unlinked historical payments are assigned oldest-first, after card baseline date.
+  function allocations(card,cycles,movements){
+    const list=cycles.filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined)
+      .sort((a,b)=>a.cutDate.localeCompare(b.cutDate));
+    const left=new Map(list.map(c=>[c.id,c.amountDue]));
+    const paid=new Map(list.map(c=>[c.id,0]));
+    const linked=movements.filter(m=>m.type==='payment'&&m.toAccountId===card.id&&
+      m.date>card.balanceDate&&Number.isSafeInteger(m.amount)&&m.amount>0)
+      .sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
+    for(const m of linked){
+      const eligible=list.filter(c=>c.cutDate<m.date);
+      if(!eligible.length)continue;
+      let balance=m.amount;
+      const priorities=m.paymentCycleId?
+        eligible.filter(c=>c.id===m.paymentCycleId):
+        eligible;
+      for(const c of priorities){
+        if(balance<=0)break;
+        const applied=Math.min(balance,Math.max(0,left.get(c.id)||0));
+        left.set(c.id,(left.get(c.id)||0)-applied);
+        paid.set(c.id,(paid.get(c.id)||0)+applied);
+        balance-=applied;
+      }
+    }
+    return {left,paid};
+  }
+  function officialRemaining(card,cycle,movements,cycles=[cycle]){
     if(cycle.amountDue===null||cycle.amountDue===undefined)return null;
-    // Payments after this closing date are allocated against this statement for display only.
-    const paid=movements.filter(m=>m.type==='payment'&&m.toAccountId===card.id&&
-      m.date>cycle.cutDate&&(!cycle.dueDate||m.date<=cycle.dueDate))
-      .reduce((s,m)=>s+m.amount,0);
-    return Math.max(0,cycle.amountDue-paid);
+    return allocations(card,cycles,movements).left.get(cycle.id)??cycle.amountDue;
+  }
+  function cycleStatus(card,cycle,cycles,movements,today){
+    const balance=officialRemaining(card,cycle,movements,cycles);
+    const days=daysUntil(cycle.dueDate,today);
+    const paid=cycle.amountDue===null?0:cycle.amountDue-balance;
+    const label=balance===null?'Sin monto oficial':balance===0?'Pagado':paid>0?'Pago parcial':days!==null&&days<0?'Vencido':'Pendiente';
+    return {remaining:balance,paid,days,label};
+  }
+  function currentPayable(card,cycles,movements,today){
+    const eligible=cycles.filter(c=>c.accountId===card.id&&c.cutDate<=today&&c.amountDue!==null&&c.amountDue!==undefined)
+      .sort((a,b)=>a.cutDate.localeCompare(b.cutDate));
+    const outstanding=eligible.find(c=>officialRemaining(card,c,movements,cycles)>0);
+    const recent=eligible.filter(c=>daysUntil(c.cutDate,today)<=75).at(-1);
+    const cycle=outstanding||recent||null;
+    return cycle?{cycle,...cycleStatus(card,cycle,cycles,movements,today)}:null;
   }
   function dueCandidates(card,cycles,movements,today){
-    return (cycles||[]).filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined&&c.cutDate<=today)
-      .map(c=>({...c,remaining:officialRemaining(card,c,movements),days:daysUntil(c.dueDate,today)}))
+    return cycles.filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined&&c.cutDate<=today)
+      .map(c=>({...c,...cycleStatus(card,c,cycles,movements,today)}))
       .filter(c=>c.remaining>0&&c.dueDate)
       .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   }
   function status(card,cycles,movements,today){
     const next=upcomingCut(card,cycles,today);
-    const dueNow=dueCandidates(card,cycles,movements,today).find(c=>c.days>=-75)||null;
-    const selected=dueNow&&dueNow.days<=14?dueNow:null;
-    return {nextCut:next,payment:selected,upcomingDue:dueNow};
+    const payable=currentPayable(card,cycles,movements,today);
+    const due=payable?.cycle?{...payable.cycle,remaining:payable.remaining,days:payable.days}:null;
+    return {nextCut:next,payment:due,upcomingDue:due};
+  }
+  function baselineCycle(card,month,cutDate,dueDate){
+    // The user explicitly says the baseline debt is the full payment for this month.
+    // No movement is created, and total credit debt remains unchanged.
+    const amount=Number(card.initialDebt)||0;
+    return {id:card.id+'|'+month,accountId:card.id,month,cutDate,dueDate:dueDate||'',
+      amountDue:amount,source:'initialDebt',baselineReferenceDate:card.balanceDate};
   }
   function unconfirmedCycleInfo(card,month,cycles=[]){const c=cut(card,month,cycles),d=due(card,month,cycles);
     return {month,cut:c,due:d,record:statementOf(card,month,cycles)};}
-  return {shift,dateFor,dateValid,statementOf,cut,due,daysUntil,upcomingCut,validateCycle,validateLegacy,legacyFor,officialRemaining,dueCandidates,status,unconfirmedCycleInfo};
+  return {shift,dateFor,dateValid,statementOf,cut,due,daysUntil,upcomingCut,validateCycle,validateLegacy,legacyFor,officialRemaining,dueCandidates,status,allocations,cycleStatus,currentPayable,baselineCycle,unconfirmedCycleInfo};
 });

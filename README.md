@@ -1,3 +1,34 @@
+# Mi Control Financiero · PWA v0.7.0
+
+## Cuenta a pantalla completa
+Pulsa cualquier cuenta para navegar a una pantalla completa con su saldo, movimientos, detalle y acciones. Para tarjetas de crédito se distinguen **deuda total** y **pago del corte**, y el botón **Pagar** preselecciona el total de deuda, con atajo opcional al pago del corte.
+
+## Cortes y deuda inicial
+- El saldo inicial de la tarjeta es una fotografía de deuda total en su fecha base. No es, por sí mismo, el monto exigible en un corte.
+- En **Tarjeta → Cortes y mensualidades → Configurar corte**, indica fecha real, límite y monto. Si **todo** el saldo inicial corresponde al corte de ese mes, activa la casilla para proponerlo como pago del corte, sin contabilizarlo nuevamente.
+- Los pagos posteriores al saldo base pueden vincularse a un corte en el formulario; los no vinculados se aplican a los cortes más antiguos, sin asignarse más de una vez.
+- Para MSI anteriores, elige si ya se encuentran incluidos en tu deuda total. Si sí, solo se planifican; si no, se crea **una única corrección contable** por las mensualidades restantes, sin registrar compras antiguas.
+- Editar o eliminar ese compromiso actualiza/revierte su corrección contable en una sola transacción.
+
+## Cajitas dentro de un banco
+- Entra a una cuenta de débito o ahorro y selecciona **Crear cajita**. Es una distribución de ese mismo saldo, no otro activo.
+- Apartar y retirar dinero entre el disponible y cajitas no crea gastos ni ingresos, solo movimientos internos.
+- Los rendimientos reales sí se contabilizan como movimientos de la cuenta y de la cajita.
+- Las cuentas de ahorro antiguas se conservan sin alterar; no se trasladan automáticamente por riesgo de doble contabilización.
+
+## Módulos
+- `features/accounts/account-page.js` y `account-page.css`: pantalla completa de cuenta.
+- `features/cards/credit-row.js`: componente compacto reutilizable para crédito.
+- `features/cards/billing.js`: fechas, pagos por ciclo y obligaciones.
+- `features/savings/pockets.js` y `pockets-view.js`: saldo interno de cajitas, reglas y vistas.
+- `logic.js`: libro de saldos; admite ajustes explícitos de deuda y no los considera compras.
+- `storage.js`: migración IndexedDB v5→v6, **sin borrar datos**.
+- Respaldo JSON y Google Drive cifrado actualizado al esquema 6.
+
+Antes de usar la nueva versión con datos reales, **exporta un respaldo JSON local**, valida que Drive haya sincronizado y comprueba operaciones con montos pequeños. No borres los datos del navegador.
+
+---
+
 # Mi Control Financiero · PWA v0.6.0
 
 ## Cortes bancarios reales, pagos y MSI anteriores

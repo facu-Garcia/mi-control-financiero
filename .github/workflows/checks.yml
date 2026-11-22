@@ -30,6 +30,11 @@ jobs:
           node --check features/payroll/payroll-view.js
           node --check features/cards/billing.js
           node --check features/cards/billing-view.js
+          node --check features/cards/credit-row.js
+          node --check features/savings/pockets.js
+          node --check features/savings/pockets-view.js
+          node --check features/accounts/account-page.js
+          node --check test-v7.cjs
           node --check test-billing.cjs
           node --check test-payroll.cjs
           node --check features/finance/forms.js
@@ -58,5 +63,6 @@ jobs:
           node test-cards.cjs
           node test-finance-v4.cjs
           node test-billing.cjs
+          node test-v7.cjs
           node test-payroll.cjs
           node test-ui-v42.cjs

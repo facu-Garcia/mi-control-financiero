@@ -1,0 +1,27 @@
+/* Full-screen account views, compact credit rows and nested bank pockets. */
+.account-page-head{display:flex;justify-content:space-between;gap:10px;margin:9px 0 18px}
+.account-page-name h1{font-size:27px;line-height:1.15;margin:4px 0 3px}
+.account-page-name p{font-size:13px;color:#98b0c5;margin:4px 0 12px}
+.account-page-card{max-width:370px;margin:14px auto 20px}.account-page-card .finance-card{max-width:100%;margin:auto}
+.account-page-main{background:linear-gradient(140deg,#183a4f,#11273d);border:1px solid #41617b;border-radius:22px;padding:23px 20px;margin:15px 0}
+.account-balance-label{font-size:13px;color:#b4cadd}.account-balance-number{display:block;margin:8px 0 13px;font-size:35px;line-height:1.2;overflow-wrap:anywhere;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.account-metrics{display:grid;grid-template-columns:1fr 1fr;gap:15px;border-top:1px solid #41596d;padding-top:15px;margin-top:16px}
+.account-metrics>div{min-width:0;display:flex;flex-direction:column;gap:6px}.account-metrics small{font-size:11px;color:#a7bed0}
+.account-metrics b{font-size:15px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.account-page-section{margin:21px 0}.account-page-section>h2{font-size:19px}
+.account-page-actions{display:flex;flex-wrap:wrap;gap:9px;margin:13px 0}.account-page-actions button{flex:1;min-width:130px;max-width:100%}
+.account-pocket-row{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid #2f485f}
+.account-pocket-row:last-child{border:0}.account-pocket-row>div{flex:1;min-width:0;display:grid;gap:5px}
+.account-pocket-row b{font-size:14px}.account-pocket-row small{font-size:11px;color:#a4bbcb}
+.account-pocket-row strong{font-size:13px;font-variant-numeric:tabular-nums}
+.credit-compact{border:1px solid #344f69;background:linear-gradient(135deg,#16283f,#112034);border-radius:17px;padding:15px;margin:10px 0}
+.credit-compact-head{display:flex;align-items:center;gap:10px}
+.credit-compact-head .account-icon{flex:none}.credit-compact-name{display:grid;gap:4px;flex:1;min-width:0}
+.credit-compact-name b{font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.credit-compact-name small{color:#9ab2c6;font-size:11px}.credit-compact-head strong{font-size:15px;color:#f49cac;white-space:nowrap;font-variant-numeric:tabular-nums}
+.credit-compact-foot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:13px;padding-top:13px;border-top:1px solid #35516b}
+.credit-compact-foot>div{display:grid;gap:5px;min-width:0}.credit-compact-foot small{font-size:10px;color:#9fb7c9;line-height:1.3}
+.credit-compact-foot b{font-size:12px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.credit-compact-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:15px}
+.credit-compact-actions button{flex:1}
+@media(max-width:390px){.account-balance-number{font-size:29px}.credit-compact-foot{gap:6px}.credit-compact-foot b{font-size:11px}}

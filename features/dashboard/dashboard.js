@@ -26,10 +26,13 @@
     if(kind==='wealth'){
       const wealth=series.filter(x=>x.net!==null).map(x=>({name:monthName(x.month).split(' ')[0].slice(0,3),value:x.net}));
       const applicable=(opt.recurrences||[]).filter(r=>ids.has(r.accountId));
-      const power=I.spendingPower(F,chosen,active,applicable);
+      const allocations=(opt.pockets||[]).filter(p=>ids.has(p.parentAccountId));
+      const reserved=opt.P?opt.P.totalAllocated(allocations,opt.pocketMoves||[],active):0;
+      const power=I.spendingPower(F,chosen,active,applicable,undefined,reserved);
       body=plot('Disponible estimado para gastar: '+M(power.spendable),
         '<div class="report-line"><span>Dinero en débito y efectivo</span><b>'+M(power.liquid)+'</b></div>'+
-        '<div class="report-line"><span>Menos deuda de tarjetas</span><b>−'+M(power.reservedDebt)+'</b></div>'+
+        '<div class="report-line"><span>Menos deuda de tarjetas</span><b>−'+M(power.reservedDebt)+'</b></div>'+ 
+        '<div class="report-line"><span>Menos dinero reservado en cajitas</span><b>−'+M(power.reservedPockets)+'</b></div>'+
         '<div class="report-line"><span>Menos cargos recurrentes conocidos por pagar este mes</span><b>−'+M(power.scheduled)+'</b></div>'+
         '<p class="footnote">Disponible orientativo a la fecha actual; no incluye ingresos futuros ni gastos que aún no hayas registrado. La reserva de deuda es conservadora.</p>')+
         plot('Patrimonio estimado: '+M(t.netWorth),line(wealth,M,E))+
@@ -39,10 +42,13 @@
     }else if(kind==='purchases'){
       body=plot('Compras atribuidas: '+M(b.purchases),bars(months,M,E))+plot('Por categoría',bars(Object.entries(b.byCat).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value),M,E));
     }else if(kind==='savings'){
-      const savings=chosen.filter(a=>a.type==='saving'||a.type==='pocket').map(a=>({name:a.name,value:F.accountBalance(a,active)}));
-      body='<div class="savings-actions"><button class="primary small" data-action="savings-create">＋ Nueva cajita</button><button class="secondary small" data-action="savings-transfer">⇄ Apartar dinero</button><button class="secondary small" data-action="savings-yield">✧ Rendimiento</button></div>'+
-      plot('Ahorro total: '+M(savings.reduce((sum,a)=>sum+a.value,0)),bars(savings,M,E))+
-      '<p class="savings-explain">Para comenzar, crea una cuenta de tipo Cajita o Ahorro. Para apartar dinero elige Transferencia desde tu débito hacia esa cajita: no es gasto ni ingreso. Para intereses depositados usa Rendimiento.</p>';
+      const standalone=chosen.filter(a=>a.type==='saving'||a.type==='pocket').map(a=>({name:a.name+' · cuenta independiente',value:F.accountBalance(a,active)}));
+      const internal=(opt.pockets||[]).filter(p=>ids.has(p.parentAccountId));
+      const allocations=internal.map(p=>({name:p.name+' · '+(accounts.find(a=>a.id===p.parentAccountId)?.name||'Cuenta'),value:opt.P?.balance(p,opt.pocketMoves||[],active)||0}));
+      const savings=standalone.concat(allocations);
+      body='<div class="savings-actions"><button class="primary small" data-action="pocket-new-from-insight">＋ Crear cajita interna</button><button class="secondary small" data-action="pocket-move-from-insight">⇄ Apartar dinero</button><button class="secondary small" data-action="pocket-yield-from-insight">✧ Rendimiento</button></div>'+
+      plot('Dinero reservado en ahorro: '+M(savings.reduce((sum,a)=>sum+a.value,0)),bars(savings,M,E))+
+      '<p class="savings-explain">Las cajitas internas son parte de una cuenta bancaria, no aumentan el patrimonio por sí solas. Las cuentas de ahorro antiguas se conservan independientes hasta que decidas reorganizarlas.</p>';
     }else{
       const credit=chosen.filter(a=>a.type==='credit'),charges=credit.map(a=>({name:a.name,value:F.statementCharges(a,active,month,opt.cycles||[],opt.legacy||[]).total}));
       const future=Array.from({length:6},(_,i)=>{const m=F.shiftMonth(month,i+1);return {name:monthName(m),value:F.monthlyInstallments(credit,active,m,opt.cycles||[],opt.legacy||[])}});

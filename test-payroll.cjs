@@ -42,7 +42,7 @@ const storage=fs.readFileSync(path.join(__dirname,'storage.js'),'utf8');
 const index=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
 const sw=fs.readFileSync(path.join(__dirname,'sw.js'),'utf8');
 assert.ok(/schemaVersion:[4-9]/.test(app));
-assert.ok(/\[1,2,3,4(?:,5)?\]\.includes\(x\.schemaVersion\)/.test(app));
+assert.ok(/\[1,2,3,4(?:,5,6)?\]\.includes\(x\.schemaVersion\)/.test(app));
 assert.ok(app.includes('payrollProfiles:state.payrollProfiles'));
 assert.ok(app.includes("tx.objectStore('payrollProfiles').put(p)"));
 assert.ok(app.includes('payrollKind:m.type'));

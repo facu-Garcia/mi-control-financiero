@@ -33,6 +33,9 @@
        <div class="field"><label for="bc-due">Fecha límite de pago (si ya la sabes)</label><input id="bc-due" name="dueDate" type="date" value="${E(dueDefault)}"></div></div>
      <div class="field"><label for="bc-amount">Pago oficial del estado de cuenta (opcional)</label>
        <input id="bc-amount" name="amountDue" type="number" step=".01" min="0" value="${p.amountDue===null||p.amountDue===undefined?'':M(p.amountDue)}" placeholder="Solo si ya lo confirmó el banco"></div>
+     <label class="billing-baseline-option"><input type="checkbox" name="useInitialDebt" ${p.source==='initialDebt'?'checked':''}>
+       <span>El saldo inicial de esta tarjeta corresponde al pago pendiente de este corte.</span></label>
+     <p class="help">Si lo activas, se propone el saldo inicial de la tarjeta como importe del corte: ${M(card.initialDebt||0)}. No crea ni duplica deuda. Úsalo solo si todo ese saldo corresponde a este pago.</p>
      <p class="inline-note">La fecha habitual sigue como referencia. Este registro define el corte real del mes. El importe oficial reemplaza la estimación solo para el aviso de pago, no crea gastos ni modifica la deuda total.</p>
      <button class="primary full" type="submit">Guardar estado de cuenta</button></form>`;
  }
@@ -43,6 +46,11 @@
      <div class="field"><label for="legacy-amount">Cuánto se paga cada mes ($)</label><input id="legacy-amount" name="amount" type="number" min=".01" step=".01" required value="${r.amount?M(r.amount):''}"></div>
      <div class="form-row"><div class="field"><label for="legacy-start">Primer mes pendiente</label><input id="legacy-start" name="startMonth" type="month" value="${E(r.startMonth||month)}" required></div>
        <div class="field"><label for="legacy-end">Último mes pendiente</label><input id="legacy-end" name="endMonth" type="month" value="${E(r.endMonth||month)}" required></div></div>
+     <div class="field"><label>¿Esas mensualidades ya están incluidas en la deuda total registrada?</label>
+       <select name="includedInDebt"><option value="yes" ${r.includedInDebt!==false?'selected':''}>Sí, ya forman parte de mi deuda</option>
+       <option value="no" ${r.includedInDebt===false?'selected':''}>No, todavía faltan por sumar a mi deuda</option></select>
+     </div>
+     <p class="inline-note">Si eliges que todavía faltan, se crea un ajuste contable por todas las mensualidades pendientes. No se registra ninguna compra antigua y no se volverá a sumar al calcular cada mes.</p>
      <p class="inline-note">Es un compromiso de compras antiguas, no una nueva compra ni una deuda adicional. Ya debe estar incluido en la deuda inicial actual de la tarjeta. No dupliques mensualidades que también hayas registrado como compras a MSI.</p>
      <button class="primary full" type="submit">Guardar compromiso</button></form>`;
  }
@@ -54,8 +62,8 @@
    const official=reference.record?.amountDue;
    return `<div class="page-head"><div><div class="eyebrow">Control de crédito</div><h1>${E(card.name)}</h1></div>
       <input id="month-control" type="month" class="month-control" value="${E(month)}"></div>
-     <div class="toolbar"><button type="button" class="secondary small" data-action="back-accounts">← Cuentas</button>
-       <button type="button" class="primary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(month)}">Registrar corte</button></div>
+     <div class="toolbar"><button type="button" class="secondary small" data-action="back-account" data-id="${E(card.id)}">← Tarjeta</button>
+       <button type="button" class="primary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(month)}">Configurar corte</button></div>
      <div class="panel billing-summary"><h2>Estado de ${E(month)}</h2>
        <div class="report-line"><span>Fecha de corte</span><b>${E(reference.cut.date||'Sin configurar')} ${reference.cut.official?'✓':''}</b></div>
        <div class="report-line"><span>Fecha límite</span><b>${E(reference.due.date||'Sin confirmar')} ${reference.due.official?'✓':''}</b></div>
@@ -73,7 +81,7 @@
        <div class="billing-actions"><b>${M(r.amount)}/mes</b><button class="secondary small" data-action="edit-legacy" data-id="${E(r.id)}">Editar</button>
        <button class="secondary small" data-action="delete-legacy" data-id="${E(r.id)}">×</button></div></div>`).join(''):
        '<p class="help">Añade una mensualidad que ya venías pagando, sin registrar compras históricas.</p>'}</div>
-     <p class="footnote">Registrar un estado de cuenta o compromiso antiguo solo organiza vencimientos y proyecciones; no aumenta tu deuda ni modifica los saldos. Para corregir la deuda de partida utiliza el saldo inicial de la tarjeta.</p>`;
+     <p class="footnote">Los cortes no crean movimientos nuevos. Las mensualidades anteriores únicamente aumentan la deuda si indicas explícitamente que faltan por contabilizar. Para corregir la deuda de partida utiliza el saldo inicial de la tarjeta.</p>`;
  }
  return {options,alert,alertList,form,legacyForm,detail};
 });

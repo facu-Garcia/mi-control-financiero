@@ -1,5 +1,17 @@
 # Historial de cambios
 
+## [0.7.0] - 2026-11-21
+- Convertir detalle de cualquier cuenta a página completa; tarjetas y cuentas mantienen sus diseños.
+- Sustituir alertas grandes y duplicadas por filas compactas de crédito con deuda, pago del corte, fecha límite y próximo corte.
+- Distinguir importe pendiente de corte y deuda total; permitir asignar la deuda inicial como obligación del corte cuando el usuario lo confirme.
+- Vincular pagos a un corte concreto, asignando pagos sin vínculo primero a los cortes más antiguos sin contarlos dos veces.
+- Permitir MSI antiguas incluidas o no incluidas en la deuda inicial. En el segundo caso crear un ajuste de deuda único, reversible y sin compras ficticias.
+- Gestionar cajitas internas de una cuenta: saldo reservado, traspasos entre apartados y rendimientos reales sin duplicar el patrimonio.
+- Conservar sin conversión automática cuentas de ahorro que ya existían.
+- Separar interfaces y reglas en módulos de cuentas, tarjetas y ahorros.
+- Migra IndexedDB a v6; respaldos cifrados/JSON esquema 6 con colecciones `pockets`, `pocketMoves` y referencias de corte/ajustes.
+
+
 ## [0.6.0] - 2026-11-21
 
 ### Tarjetas de crédito y fechas reales

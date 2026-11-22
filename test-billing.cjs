@@ -46,7 +46,7 @@ assert.match(detail,/3500.00/);
 const alert=V.alert(card,[cycle],[pay],'2026-11-26',B,M,E);
 assert.match(alert,/Pago del estado de cuenta/);
 const app=fs.readFileSync('./app.js','utf8'),store=fs.readFileSync('./storage.js','utf8');
-assert.match(app,/schemaVersion:5/);assert.match(app,/billingCycles:state.billingCycles/);
+assert.match(app,/schemaVersion:6/);assert.match(app,/billingCycles:state.billingCycles/);
 assert.match(app,/legacyInstallments:state.legacyInstallments/);
 assert.match(app,/function cycleForm/);assert.match(app,/function legacyForm/);
 assert.match(app,/data-payment-preset="total"/);assert.match(app,/data-payment-preset="statement"/);
