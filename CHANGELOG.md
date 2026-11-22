@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## [0.7.3] - 2026-11-22
+- Mostrar la deuda inicial automáticamente como importe a pagar del mes financiero base, con fecha de corte y vencimiento prellenados.
+- Eliminar casilla redundante y simplificar el formulario de corte a mes, fechas e importe editable.
+- Resolver montos del resumen y su pantalla de detalle desde cortes pendientes y MSI previstas; no únicamente compras nuevas.
+- Rediseñar historial de cortes con filas compactas, fechas legibles, estado y acciones apropiadas para móvil.
+- Mantener compatibilidad con cortes ya guardados y sin duplicar cargos ni modificar saldos iniciales.
+
+
 ## [0.7.2] - 2026-11-21
 - Al editar un rendimiento de cajita, impedir cambiar la cuenta receptora, el tipo de movimiento o utilizar una fecha incompatible con la creación de la cajita y el saldo inicial. Esto mantiene alineados el saldo del banco y el saldo del apartado.
 

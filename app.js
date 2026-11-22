@@ -131,9 +131,9 @@
   function renderHome(){
     const t=F.totals(state.accounts,state.movements),b=F.breakdown(state.accounts,state.movements,selectedMonth,state.billingCycles),tx=monthlyTx();
     const power=Insight.spendingPower(F,state.accounts,state.movements,state.recurrences,localDate(),Pockets.totalAllocated(state.pockets,state.pocketMoves,state.movements));const warnings=Insight.baselineWarnings(state.accounts,state.movements);
-    const cards=state.accounts.filter(a=>a.type==='credit');const charges=cards.reduce((s,a)=>s+F.statementCharges(a,state.movements,selectedMonth,state.billingCycles,state.legacyInstallments).total,0);
+    const cards=state.accounts.filter(a=>a.type==='credit');const charges=cards.reduce((s,a)=>s+Billing.paymentSummary(a,selectedMonth,state.billingCycles,state.movements,state.legacyInstallments,F).total,0);
     main.innerHTML=header('Tu dinero','Resumen general')+`<button type="button" class="hero hero-click" data-action="open-insight" data-kind="wealth"><div class="hero-label">Patrimonio neto estimado</div><div class="hero-value">${money(t.netWorth)}</div><div class="hero-sub">Saldos disponibles + ahorros − deuda de tarjetas</div><div class="hero-bottom"><div class="hero-mini">Dinero y ahorros<b>${money(t.assets)}</b></div><div class="hero-mini">Deuda en tarjetas<b>${money(t.debts)}</b></div></div></button>
-    <div class="two-col" style="margin-top:12px"><button type="button" class="stat stat-click" data-action="open-insight" data-kind="income"><div class="k">Ingresos recibidos este mes</div><div class="v positive">${money(b.income)}</div><div class="hint">Salario previsto: ${money(projectedSalary())}</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="purchases"><div class="k">Compras del mes financiero</div><div class="v">${money(b.purchases)}</div><div class="hint">Tarjetas según fecha de corte</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="savings"><div class="k">Ahorros en cajitas y cuentas</div><div class="v sky">${money(t.saved+Pockets.totalAllocated(state.pockets,state.pocketMoves,state.movements))}</div><div class="hint">Incluidos en tu dinero total</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="statements"><div class="k">Cargos de tarjetas en el corte</div><div class="v gold">${money(charges)}</div><div class="hint">Incluye mensualidades MSI estimadas</div></button></div>
+    <div class="two-col" style="margin-top:12px"><button type="button" class="stat stat-click" data-action="open-insight" data-kind="income"><div class="k">Ingresos recibidos este mes</div><div class="v positive">${money(b.income)}</div><div class="hint">Salario previsto: ${money(projectedSalary())}</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="purchases"><div class="k">Compras del mes financiero</div><div class="v">${money(b.purchases)}</div><div class="hint">Tarjetas según fecha de corte</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="savings"><div class="k">Ahorros en cajitas y cuentas</div><div class="v sky">${money(t.saved+Pockets.totalAllocated(state.pockets,state.pocketMoves,state.movements))}</div><div class="hint">Incluidos en tu dinero total</div></button><button type="button" class="stat stat-click" data-action="open-insight" data-kind="statements"><div class="k">Pagos de tarjetas pendientes</div><div class="v gold">${money(charges)}</div><div class="hint">Cortes pendientes y MSI estimadas del mes</div></button></div>
     <button type="button" class="spendable-strip" data-action="open-insight" data-kind="wealth" aria-label="Ver estimación de dinero disponible y patrimonio"><span class="spendable-strip-copy"><span class="spendable-kicker">Estimación para gastar</span><strong>${money(power.spendable)}</strong><small>Descontando deuda y compromisos conocidos · ver detalle</small></span><span class="spendable-arrow" aria-hidden="true">›</span></button>${warnings.length?`<div class="inline-note">Atención: ${warnings.length} cuenta(s) tienen movimientos con fecha igual o anterior a su saldo base. Se muestran en el histórico pero no alteran el saldo. Revisa la fecha base y el saldo inicial.</div>`:''}
      ${sectionTitle('Dinero y ahorros','goto-accounts','Ver cuentas')}
      <div class="panel">${accountList(state.accounts.filter(a=>a.type!=='credit').slice(0,4))}</div>
@@ -215,29 +215,20 @@
     openModal('Estado de cuenta y fechas reales',BillingViews.form(card,old,Billing,val,esc,selectedMonthBefore));
     const form=document.getElementById('billing-cycle-form');
     const refresh=()=>{
-      const newMonth=form.elements.month.value,record=Billing.statementOf(card,newMonth,state.billingCycles);
-      form.elements.cutDate.value=record?.cutDate||Billing.cut(card,newMonth,[]).date||'';
-      form.elements.dueDate.value=record?.dueDate||Billing.due(card,newMonth,[]).date||'';
-      form.elements.amountDue.value=record?.amountDue===null||record?.amountDue===undefined?'':val(record.amountDue);
-      form.elements.useInitialDebt.checked=record?.source==='initialDebt';
+      const currentMonth=form.elements.month.value;
+      const record=Billing.effectiveCycle(card,currentMonth,state.billingCycles);
+      form.elements.cutDate.value=record?.cutDate||Billing.cut(card,currentMonth,[]).date||'';
+      form.elements.dueDate.value=record?.dueDate||Billing.due(card,currentMonth,[]).date||'';
+      form.elements.amountDue.value=record?.amountDue==null?'':val(record.amountDue);
     };
     form.elements.month.addEventListener('change',refresh);
-    form.elements.useInitialDebt.addEventListener('change',()=>{
-      if(form.elements.useInitialDebt.checked){
-        if(!card.initialDebt){form.elements.useInitialDebt.checked=false;notify('La deuda inicial de esta tarjeta es cero.');return;}
-        form.elements.amountDue.value=val(card.initialDebt);
-      }else{
-        const c=Billing.statementOf(card,form.elements.month.value,state.billingCycles);
-        form.elements.amountDue.value=c?.source==='initialDebt'?'':c?.amountDue==null?'':val(c.amountDue);
-      }
-    });
     form.addEventListener('submit',async e=>{
       e.preventDefault();
       try{
         const f=e.currentTarget,key=card.id+'|'+f.elements.month.value,amount=f.elements.amountDue.value.trim();
         const record={id:key,accountId:card.id,month:f.elements.month.value,
           cutDate:f.elements.cutDate.value,dueDate:f.elements.dueDate.value,
-          amountDue:amount===''?null:cents(amount),source:f.elements.useInitialDebt.checked?'initialDebt':'bank'};
+          amountDue:amount===''?null:cents(amount),source:f.elements.month.value===Billing.initialMonth(card)?'initialDebt':'bank'};
         Billing.validateCycle(record,state.accounts);
         await save('billingCycles',record);
         closeModal();billingDetail(card.id);
@@ -445,7 +436,7 @@
   }
   function enhanceAccountPickers(root){if(AccountPicker?.enhance)AccountPicker.enhance(root,state.accounts);}
   function renderInsight(){
-    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:state.movements,month:selectedMonth,accountId:insightAccount,recurrences:state.recurrences,cycles:state.billingCycles,legacy:state.legacyInstallments,pockets:state.pockets,pocketMoves:state.pocketMoves,P:Pockets,F,I:Insight,esc,money,monthName});
+    main.innerHTML=Dash.render(insightKind,{accounts:state.accounts,movements:state.movements,month:selectedMonth,accountId:insightAccount,recurrences:state.recurrences,cycles:state.billingCycles,legacy:state.legacyInstallments,pockets:state.pockets,pocketMoves:state.pocketMoves,P:Pockets,B:Billing,F,I:Insight,esc,money,monthName});
     enhanceAccountPickers(main);
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
@@ -556,7 +547,7 @@
       const card=getAccount(f.elements.toAccountId.value),row=document.getElementById('m-cycle-row');
       row.hidden=f.elements.type.value!=='payment'||card?.type!=='credit';
       if(row.hidden)return;
-      const available=state.billingCycles.filter(c=>c.accountId===card.id&&c.amountDue!==null)
+      const available=Billing.effectiveCycles(card,state.billingCycles).filter(c=>c.amountDue!==null)
         .sort((a,b)=>a.cutDate.localeCompare(b.cutDate));
       f.elements.paymentCycleId.innerHTML='<option value="">Asignar al más antiguo pendiente</option>'+
         available.map(c=>option(c.id,c.month+' · '+money(c.amountDue),existing?.paymentCycleId||'')).join('');
@@ -786,7 +777,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.7.2 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.7.3 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);

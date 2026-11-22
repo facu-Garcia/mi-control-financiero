@@ -1,3 +1,17 @@
+# Mi Control Financiero · PWA v0.7.3
+
+## Correcciones del corte inicial y del historial
+- **Primer mes automático:** la deuda inicial de cada tarjeta de crédito corresponde al mes de su fecha base. Aparece en el pago de ese corte sin casillas ni confirmaciones adicionales y sin crear compras o aumentar la deuda.
+- **Fechas propuestas:** el corte y fecha límite nacen de los días habituales ya configurados, pero pueden modificarse para cada mes cuando se conozcan las fechas reales.
+- **Pago editable:** el importe inicial se puede modificar directamente en «Editar corte». Los siguientes cortes usan la estimación de compras y mensualidades si no se ha registrado un monto.
+- **Indicador amarillo:** «Pagos de tarjetas pendientes» muestra deudas de cortes que aún no se han liquidado y proyecciones del mes seleccionado, diferenciándolas de compras nuevas.
+- **Historial de cortes:** lista con tarjetas compactas, importe, fechas, estado y acciones sin desbordar en móviles.
+- **Datos existentes:** conserva ciclos que ya fueron guardados, pago real y sus fechas; no migra ni reescribe movimientos o saldos privados. La lógica reconoce de forma virtual el mes base cuando falta un corte explícito.
+- **Pagos:** cada pago de crédito disminuye el saldo contable y el importe pendiente que corresponda. La proyección nunca vuelve a sumar la deuda a patrimonio.
+- **Limitación:** las fechas habituales son estimadas hasta que se cotejen con la app bancaria; el importe inicial puede incluir otros conceptos si se anotó así en la cuenta.
+
+---
+
 # Mi Control Financiero · PWA v0.7.1
 
 ### Seguridad de la migración

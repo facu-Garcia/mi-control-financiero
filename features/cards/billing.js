@@ -32,6 +32,44 @@
     for(let i=0;i<5;i++){const m=shift(month,i),v=cut(card,m,cycles);if(v.date&&v.date>=today)return {month:m,...v,days:daysUntil(v.date,today)};}
     return null;
   }
+  // The opening debt belongs to the financial month in which the card's
+  // baseline was recorded. This is a display obligation, never a new expense.
+  function initialMonth(card){return String(card.balanceDate||'').slice(0,7);}
+  function effectiveCycle(card,month,cycles=[]){
+    const saved=statementOf(card,month,cycles);
+    if(saved){
+      const baseline=month===initialMonth(card);
+      return {...saved,amountDue:saved.amountDue==null&&baseline?(card.initialDebt||0):saved.amountDue,
+        source:saved.source||(baseline?'initialDebt':'bank')};
+    }
+    if(card.type!=='credit'||month!==initialMonth(card)||!(card.initialDebt>0))return null;
+    const closing=cut(card,month,cycles).date;
+    return {id:card.id+'|'+month,accountId:card.id,month,
+      cutDate:closing||card.balanceDate,dueDate:due(card,month,cycles).date||'',
+      amountDue:card.initialDebt,source:'initialDebt',estimated:true};
+  }
+  function effectiveCycles(card,cycles=[]){
+    const existing=cycles.filter(c=>c.accountId===card.id);
+    const base=effectiveCycle(card,initialMonth(card),cycles);
+    return base&&!existing.some(c=>c.month===base.month)?[...existing,base]:existing.map(c=>c.month===base?.month?base:c);
+  }
+  function monthPayment(card,month,cycles,movements,legacy=[],F=null){
+    const cycle=effectiveCycle(card,month,cycles);
+    if(cycle&&cycle.amountDue!=null){
+      return {amount:officialRemaining(card,cycle,movements,effectiveCycles(card,cycles)),
+        kind:cycle.estimated?'initial':'recorded',cycle};
+    }
+    const estimated=F?F.statementCharges(card,movements,month,cycles,legacy).total:0;
+    return {amount:estimated,kind:'estimate',cycle:null};
+  }
+  function paymentSummary(card,month,cycles,movements,legacy=[],F=null){
+    const all=effectiveCycles(card,cycles);
+    const open=all.filter(c=>c.month<=month&&c.amountDue!=null)
+      .reduce((sum,c)=>sum+Math.max(0,officialRemaining(card,c,movements,all)),0);
+    const thisMonth=all.some(c=>c.month===month);
+    const estimate=!thisMonth&&F?F.statementCharges(card,movements,month,cycles,legacy).total:0;
+    return {confirmed:open,estimated:estimate,total:open+estimate};
+  }
   function validateCycle(c,accounts){
     if(!accounts.some(a=>a.id===c.accountId&&a.type==='credit'))throw Error('Selecciona una tarjeta de crédito.');
     if(!/^\d{4}-\d{2}$/.test(c.month)||c.month!==new Date(c.month+'-01T12:00:00Z').toISOString().slice(0,7))throw Error('Mes del corte inválido.');
@@ -55,7 +93,7 @@
   // Each card payment is allocated to at most one cycle. Explicit references win;
   // unlinked historical payments are assigned oldest-first, after card baseline date.
   function allocations(card,cycles,movements){
-    const list=cycles.filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined)
+    const list=effectiveCycles(card,cycles).filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined)
       .sort((a,b)=>a.cutDate.localeCompare(b.cutDate));
     const left=new Map(list.map(c=>[c.id,c.amountDue]));
     const paid=new Map(list.map(c=>[c.id,0]));
@@ -63,7 +101,7 @@
       m.date>card.balanceDate&&Number.isSafeInteger(m.amount)&&m.amount>0)
       .sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
     for(const m of linked){
-      const eligible=list.filter(c=>c.cutDate<m.date);
+      const eligible=list.filter(c=>c.cutDate<m.date||((c.source==='initialDebt'||c.estimated)&&c.month===initialMonth(card)));
       if(!eligible.length)continue;
       let balance=m.amount;
       const priorities=m.paymentCycleId?
@@ -87,20 +125,22 @@
     const balance=officialRemaining(card,cycle,movements,cycles);
     const days=daysUntil(cycle.dueDate,today);
     const paid=cycle.amountDue===null?0:cycle.amountDue-balance;
-    const label=balance===null?'Sin monto oficial':balance===0?'Pagado':paid>0?'Pago parcial':days!==null&&days<0?'Vencido':'Pendiente';
+    const label=balance===null?'Monto por registrar':balance===0?'Pagado':paid>0?'Pago parcial':days!==null&&days<0?'Vencido':cycle.cutDate>today?'Próximo corte':'Pendiente';
     return {remaining:balance,paid,days,label};
   }
   function currentPayable(card,cycles,movements,today){
-    const eligible=cycles.filter(c=>c.accountId===card.id&&c.cutDate<=today&&c.amountDue!==null&&c.amountDue!==undefined)
+    const all=effectiveCycles(card,cycles);
+    const eligible=all.filter(c=>c.accountId===card.id&&c.month<=today.slice(0,7)&&c.amountDue!==null&&c.amountDue!==undefined)
       .sort((a,b)=>a.cutDate.localeCompare(b.cutDate));
-    const outstanding=eligible.find(c=>officialRemaining(card,c,movements,cycles)>0);
+    const outstanding=eligible.find(c=>officialRemaining(card,c,movements,all)>0);
     const recent=eligible.filter(c=>daysUntil(c.cutDate,today)<=75).at(-1);
     const cycle=outstanding||recent||null;
-    return cycle?{cycle,...cycleStatus(card,cycle,cycles,movements,today)}:null;
+    return cycle?{cycle,...cycleStatus(card,cycle,all,movements,today)}:null;
   }
   function dueCandidates(card,cycles,movements,today){
-    return cycles.filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined&&c.cutDate<=today)
-      .map(c=>({...c,...cycleStatus(card,c,cycles,movements,today)}))
+    const all=effectiveCycles(card,cycles);
+    return all.filter(c=>c.accountId===card.id&&c.amountDue!==null&&c.amountDue!==undefined&&c.month<=today.slice(0,7))
+      .map(c=>({...c,...cycleStatus(card,c,all,movements,today)}))
       .filter(c=>c.remaining>0&&c.dueDate)
       .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   }
@@ -118,6 +158,6 @@
       amountDue:amount,source:'initialDebt',baselineReferenceDate:card.balanceDate};
   }
   function unconfirmedCycleInfo(card,month,cycles=[]){const c=cut(card,month,cycles),d=due(card,month,cycles);
-    return {month,cut:c,due:d,record:statementOf(card,month,cycles)};}
-  return {shift,dateFor,dateValid,statementOf,cut,due,daysUntil,upcomingCut,validateCycle,validateLegacy,legacyFor,officialRemaining,dueCandidates,status,allocations,cycleStatus,currentPayable,baselineCycle,unconfirmedCycleInfo};
+    return {month,cut:c,due:d,record:effectiveCycle(card,month,cycles)};}
+  return {shift,dateFor,dateValid,statementOf,cut,due,daysUntil,upcomingCut,validateCycle,validateLegacy,legacyFor,initialMonth,effectiveCycle,effectiveCycles,monthPayment,paymentSummary,officialRemaining,dueCandidates,status,allocations,cycleStatus,currentPayable,baselineCycle,unconfirmedCycleInfo};
 });

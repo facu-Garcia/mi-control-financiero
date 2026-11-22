@@ -24,20 +24,19 @@
    return `<div class="billing-alerts">${list.map(a=>alert(a.card,cycles,movements,today,B,M,E)).join('')}</div>`;
  }
  function form(card,cycle,B,M,E,month){
-   const p=cycle||{};
-   const cutDefault=p.cutDate||B.cut(card,month,[]).date||'';
-   const dueDefault=p.dueDate||B.due(card,month,[]).date||'';
+   const p=cycle||B.effectiveCycle(card,month,[]);
+   const baseline=month===B.initialMonth(card);
+   const cutDefault=p?.cutDate||B.cut(card,month,[]).date||'';
+   const dueDefault=p?.dueDate||B.due(card,month,[]).date||'';
+   const amount=p?.amountDue==null?(baseline?card.initialDebt:null):p.amountDue;
    return `<form id="billing-cycle-form" class="form">
-     <div class="field"><label for="bc-month">Mes del estado de cuenta</label><input id="bc-month" name="month" type="month" value="${E(month)}" required></div>
-     <div class="form-row"><div class="field"><label for="bc-cut">Fecha exacta del corte</label><input id="bc-cut" name="cutDate" type="date" required value="${E(cutDefault)}"></div>
-       <div class="field"><label for="bc-due">Fecha límite de pago (si ya la sabes)</label><input id="bc-due" name="dueDate" type="date" value="${E(dueDefault)}"></div></div>
-     <div class="field"><label for="bc-amount">Pago oficial del estado de cuenta (opcional)</label>
-       <input id="bc-amount" name="amountDue" type="number" step=".01" min="0" value="${p.amountDue===null||p.amountDue===undefined?'':M(p.amountDue)}" placeholder="Solo si ya lo confirmó el banco"></div>
-     <label class="billing-baseline-option"><input type="checkbox" name="useInitialDebt" ${p.source==='initialDebt'?'checked':''}>
-       <span>El saldo inicial de esta tarjeta corresponde al pago pendiente de este corte.</span></label>
-     <p class="help">Si lo activas, se propone el saldo inicial de la tarjeta como importe del corte: ${M(card.initialDebt||0)}. No crea ni duplica deuda. Úsalo solo si todo ese saldo corresponde a este pago.</p>
-     <p class="inline-note">La fecha habitual sigue como referencia. Este registro define el corte real del mes. El importe oficial reemplaza la estimación solo para el aviso de pago, no crea gastos ni modifica la deuda total.</p>
-     <button class="primary full" type="submit">Guardar estado de cuenta</button></form>`;
+     <div class="field"><label for="bc-month">Mes del corte</label><input id="bc-month" name="month" type="month" value="${E(month)}" required></div>
+     <div class="form-row"><div class="field"><label for="bc-cut">Fecha de corte</label><input id="bc-cut" name="cutDate" type="date" required value="${E(cutDefault)}"></div>
+       <div class="field"><label for="bc-due">Fecha límite de pago</label><input id="bc-due" name="dueDate" type="date" value="${E(dueDefault)}"></div></div>
+     <div class="field"><label for="bc-amount">Monto a pagar de este corte ($)</label>
+       <input id="bc-amount" name="amountDue" type="number" step=".01" min="0" value="${amount==null?'':M(amount)}" placeholder="Por registrar"></div>
+     <p class="help">Las fechas propuestas se basan en la configuración habitual de la tarjeta. Puedes corregirlas según tu banco. La deuda inicial aparece automáticamente en su primer mes; modificar este importe no vuelve a sumar deuda.</p>
+     <button class="primary full" type="submit">Guardar fechas y pago del corte</button></form>`;
  }
  function legacyForm(card,record,B,M,E,month){
    const r=record||{};
@@ -55,33 +54,55 @@
      <button class="primary full" type="submit">Guardar compromiso</button></form>`;
  }
  function detail(card,cycles,legacy,movements,month,today,B,F,M,E){
-   const allCycles=cycles.filter(c=>c.accountId===card.id).sort((a,b)=>b.month.localeCompare(a.month));
+   const allCycles=B.effectiveCycles(card,cycles).sort((a,b)=>b.month.localeCompare(a.month));
    const commitments=legacy.filter(r=>r.accountId===card.id).sort((a,b)=>a.startMonth.localeCompare(b.startMonth));
    const reference=B.unconfirmedCycleInfo(card,month,cycles);
-   const estimate=F.statementCharges(card,movements,month,cycles,legacy);
-   const official=reference.record?.amountDue;
+   const estimated=F.statementCharges(card,movements,month,cycles,legacy);
+   const payment=B.monthPayment(card,month,cycles,movements,legacy,F);
+   const history=allCycles.map(c=>{
+     const amount=B.monthPayment(card,c.month,cycles,movements,legacy,F);
+     const estimatedDates=c.estimated;
+     return `<article class="billing-history-item">
+       <div class="billing-history-top">
+         <div class="billing-history-title"><b>${E(c.month)}</b>
+           <small>${estimatedDates?'Automático · saldo inicial':'Corte registrado'}</small></div>
+         <strong>${M(amount.amount)}</strong>
+       </div>
+       <div class="billing-history-dates">
+         <span><small>Corte</small><b>${E(c.cutDate||'Por configurar')}</b></span>
+         <span><small>Fecha límite</small><b>${E(c.dueDate||B.due(card,c.month,cycles).date||'Por configurar')}</b></span>
+       </div>
+       <div class="billing-history-footer">
+         <span>${E(B.cycleStatus(card,c,allCycles,movements,today).label)}</span>
+         <button class="secondary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(c.month)}">Editar</button>
+         ${c.estimated?'':`<button class="iconbtn billing-delete" data-action="delete-billing-cycle" data-id="${E(c.id)}" aria-label="Eliminar corte ${E(c.month)}">×</button>`}
+       </div>
+     </article>`;
+   }).join('');
    return `<div class="page-head"><div><div class="eyebrow">Control de crédito</div><h1>${E(card.name)}</h1></div>
       <input id="month-control" type="month" class="month-control" value="${E(month)}"></div>
      <div class="toolbar"><button type="button" class="secondary small" data-action="back-account" data-id="${E(card.id)}">← Tarjeta</button>
-       <button type="button" class="primary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(month)}">Configurar corte</button></div>
-     <div class="panel billing-summary"><h2>Estado de ${E(month)}</h2>
-       <div class="report-line"><span>Fecha de corte</span><b>${E(reference.cut.date||'Sin configurar')} ${reference.cut.official?'✓':''}</b></div>
-       <div class="report-line"><span>Fecha límite</span><b>${E(reference.due.date||'Sin confirmar')} ${reference.due.official?'✓':''}</b></div>
-       ${moneyRow('Compras regulares y MSI estimadas',estimate.total,M)}
-       ${moneyRow('Compromisos antiguos incluidos',B.legacyFor(card.id,month,legacy),M)}
-       <div class="report-line"><span>Pago oficial comunicado por el banco</span><b>${official===null||official===undefined?'Sin registrar':M(official)}</b></div>
-       <p class="footnote">El pago oficial debe transcribirse del banco. No se obtiene sumando automáticamente las compras estimadas.</p></div>
-     <div class="section-title"><h2>Historial de cortes</h2></div><div class="panel">
-       ${allCycles.length?allCycles.map(c=>`<div class="report-line"><span><b>${E(c.month)}</b><small class="help">Corte: ${E(c.cutDate)} · Pago: ${E(c.dueDate||'Sin confirmar')}</small></span>
-         <div class="billing-actions"><b>${c.amountDue===null||c.amountDue===undefined?'Sin monto':M(c.amountDue)}</b>
-           <button class="secondary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(c.month)}">Editar</button>
-           <button class="secondary small" data-action="delete-billing-cycle" data-id="${E(c.id)}">×</button></div></div>`).join(''):'<p class="help">Aún no hay cortes confirmados. Se estiman con el día habitual.</p>'}</div>
-     <div class="section-title"><h2>MSI de compras anteriores</h2><button class="text-btn" data-action="add-legacy" data-id="${E(card.id)}">＋ Agregar mensualidad</button></div>
-     <div class="panel">${commitments.length?commitments.map(r=>`<div class="report-line"><span><b>${E(r.label)}</b><small class="help">${E(r.startMonth)} a ${E(r.endMonth)}</small></span>
-       <div class="billing-actions"><b>${M(r.amount)}/mes</b><button class="secondary small" data-action="edit-legacy" data-id="${E(r.id)}">Editar</button>
-       <button class="secondary small" data-action="delete-legacy" data-id="${E(r.id)}">×</button></div></div>`).join(''):
-       '<p class="help">Añade una mensualidad que ya venías pagando, sin registrar compras históricas.</p>'}</div>
-     <p class="footnote">Los cortes no crean movimientos nuevos. Las mensualidades anteriores únicamente aumentan la deuda si indicas explícitamente que faltan por contabilizar. Para corregir la deuda de partida utiliza el saldo inicial de la tarjeta.</p>`;
+       <button type="button" class="primary small" data-action="edit-billing-cycle" data-id="${E(card.id)}" data-month="${E(month)}">Editar corte</button></div>
+     <section class="panel billing-summary">
+       <div class="eyebrow">Pago del corte · ${E(month)}</div>
+       <strong class="billing-hero-amount">${M(payment.amount)}</strong>
+       <div class="billing-history-dates">
+         <span><small>Fecha de corte</small><b>${E(reference.cut.date||'Por configurar')}</b><small>${reference.cut.official?'Registrada':'Estimada'}</small></span>
+         <span><small>Fecha límite</small><b>${E(reference.due.date||'Por configurar')}</b><small>${reference.due.official?'Registrada':'Estimada'}</small></span>
+       </div>
+       <p class="help">${payment.kind==='estimate'?'Importe orientativo calculado con tus compras y mensualidades registradas.':payment.kind==='initial'?'Corresponde a la deuda inicial registrada para este mes.':'Importe registrado para este corte, descontando los pagos aplicados.'}</p>
+       ${estimated.installments>0?`<div class="billing-mini-note">MSI previstas para este corte: <b>${M(estimated.installments)}</b> (informativo; no se suman otra vez)</div>`:''}
+     </section>
+     <div class="section-title"><h2>Historial de cortes</h2></div>
+     <div class="billing-history-list">${history||'<div class="panel"><p class="help">Aún no tienes cortes registrados. Puedes agregar el primero con Editar corte.</p></div>'}</div>
+     <div class="section-title"><h2>MSI de compras anteriores</h2><button class="text-btn" data-action="add-legacy" data-id="${E(card.id)}">＋ Agregar</button></div>
+     <div class="panel billing-legacy-list">${commitments.length?commitments.map(r=>`<div class="billing-legacy-row">
+       <div><b>${E(r.label)}</b><small>${E(r.startMonth)} a ${E(r.endMonth)}</small></div>
+       <strong>${M(r.amount)}/mes</strong>
+       <div class="billing-history-footer"><button class="secondary small" data-action="edit-legacy" data-id="${E(r.id)}">Editar</button>
+         <button class="iconbtn billing-delete" data-action="delete-legacy" data-id="${E(r.id)}" aria-label="Eliminar mensualidad">×</button></div>
+       </div>`).join(''):'<p class="help">Registra las mensualidades que ya venías pagando sin capturar compras antiguas.</p>'}</div>
+     <p class="footnote">Los pagos del corte y los MSI permiten planificar tus compromisos. No se duplican como gastos ni ingresos.</p>`;
  }
  return {options,alert,alertList,form,legacyForm,detail};
 });

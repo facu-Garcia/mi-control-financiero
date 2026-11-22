@@ -50,9 +50,9 @@
       plot('Dinero reservado en ahorro: '+M(savings.reduce((sum,a)=>sum+a.value,0)),bars(savings,M,E))+
       '<p class="savings-explain">Las cajitas internas son parte de una cuenta bancaria, no aumentan el patrimonio por sí solas. Las cuentas de ahorro antiguas se conservan independientes hasta que decidas reorganizarlas.</p>';
     }else{
-      const credit=chosen.filter(a=>a.type==='credit'),charges=credit.map(a=>({name:a.name,value:F.statementCharges(a,active,month,opt.cycles||[],opt.legacy||[]).total}));
+      const credit=chosen.filter(a=>a.type==='credit'),B=opt.B||null,charges=credit.map(a=>({name:a.name,value:B?B.paymentSummary(a,month,opt.cycles||[],active,opt.legacy||[],F).total:F.statementCharges(a,active,month,opt.cycles||[],opt.legacy||[]).total}));
       const future=Array.from({length:6},(_,i)=>{const m=F.shiftMonth(month,i+1);return {name:monthName(m),value:F.monthlyInstallments(credit,active,m,opt.cycles||[],opt.legacy||[])}});
-      body='<div class="toolbar"><button class="secondary small" data-action="back-accounts">Ver tarjetas y fechas de pago</button></div>'+plot('Cargos del corte: '+M(charges.reduce((s,a)=>s+a.value,0)),bars(charges,M,E))+plot('Mensualidades futuras',bars(future,M,E))+'<p class="footnote">Los cargos estimados no equivalen necesariamente al pago exigible por el banco.</p>';
+      body='<div class="toolbar"><button class="secondary small" data-action="back-accounts">Ver tarjetas y fechas de pago</button></div>'+plot('Pagos pendientes y cargos previstos: '+M(charges.reduce((s,a)=>s+a.value,0)),bars(charges,M,E))+plot('Mensualidades futuras',bars(future,M,E))+'<p class="footnote">Los cargos estimados no equivalen necesariamente al pago exigible por el banco.</p>';
     }
     const def=definitions[kind]||definitions.wealth;
     return `<div class="page-head"><div><div class="eyebrow">${E(def[1])}</div><h1>${E(def[0])}</h1></div><input id="month-control" type="month" class="month-control" value="${E(month)}" aria-label="Mes del informe"></div>
