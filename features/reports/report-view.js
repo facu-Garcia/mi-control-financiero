@@ -11,7 +11,7 @@ function svgBars(rows,M,E,mode){
  const series=mode==='credit'?[['debts','#f4a1ab'],['payments','#73b6f7']]:[['income','#50d8c0'],['purchases','#75aafb']];
  const max=Math.max(1,...rows.flatMap(r=>series.map(([k])=>Math.max(0,n(r[k])))));
  const tick=Array.from({length:5},(_,i)=>{const y=bottom-plotH*i/4;return '<line x1="'+left+'" x2="'+right+'" y1="'+y+'" y2="'+y+'" class="fr-gridline"/>'+
-   '<text x="'+(left-6)+'" y="'+(y+4)+'" text-anchor="end" class="fr-axis">'+E(Math.round(max*i/400)/100>=1000?Math.round(max*i/400000)+'k':Math.round(max*i/400)/100+'')+'</text>';}).join('');
+   '<text x="'+(left-6)+'" y="'+(y+4)+'" text-anchor="end" class="fr-axis">'+E(Math.round(max*i/400)>=1000?(Math.round(max*i/400)/1000).toFixed(1)+'k':String(Math.round(max*i/400)))+'</text>';}).join('');
  const step=(right-left)/Math.max(1,rows.length),barWidth=Math.max(7,Math.min(20,step*.22));
  const bars=rows.map((r,i)=>series.map(([key,color],k)=>{
    if(r[key]==null)return '';
