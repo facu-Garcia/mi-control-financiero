@@ -1,0 +1,42 @@
+/* Credit-card cycles and legacy commitments: UI-only styles. */
+.billing-alerts{display:grid;gap:12px;margin:10px 0 17px}.billing-alert{background:linear-gradient(135deg,#162a40,#122034);border:1px solid #36506a;border-radius:17px;padding:15px 14px}
+.billing-alert-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.billing-alert-head b{font-size:14px}
+.billing-pills{display:flex;flex-wrap:wrap;gap:8px}.billing-chip{display:grid;gap:3px;padding:9px 11px;background:#1a344a;border-radius:10px;font-size:12px;color:#d6e8f6;min-width:110px}
+.billing-chip small{color:#97b4c8;font-size:10px;line-height:1.4}.billing-amount{display:grid;gap:3px;margin-top:11px;padding-top:11px;border-top:1px solid #30485d}
+.billing-amount small{color:#afc4d2;font-size:11px}.billing-amount strong{font-size:21px;color:#f5c577}.billing-amount span{font-size:11px;color:#b5cadb}
+.billing-summary{margin-top:14px}.billing-summary h2{font-size:17px}.billing-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:end;gap:7px}
+.billing-actions b{font-size:12px}.billing-actions .secondary{padding:6px!important}
+.billing-credit-tags{display:grid;gap:7px;margin:10px 0}.billing-credit-tags>div{display:flex;justify-content:space-between;color:#b7d0df;font-size:12px}
+.savings-actions{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.savings-explain{margin:12px 0;font-size:12px;color:#9eb9ca;line-height:1.65}
+.savings-tag{font-size:11px;color:#89d9db;display:inline-block;background:#19364a;padding:4px 8px;border-radius:8px}
+@media(min-width:680px){.billing-alerts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:370px){.billing-alert-head{align-items:start}.billing-actions{flex-direction:column;align-items:flex-end}}
+
+/* v0.7.3 – Corte history: mobile-first cards instead of horizontal report-lines. */
+.billing-history-list{display:grid;gap:12px;margin:12px 0 26px}
+.billing-history-item{min-width:0;overflow:hidden;padding:16px;background:linear-gradient(145deg,#16293f,#102034);border:1px solid #37516a;border-radius:17px}
+.billing-history-top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.billing-history-title{display:grid;gap:6px;min-width:0}
+.billing-history-title b{font-size:16px;color:#f1f7ff;white-space:normal}
+.billing-history-title small{font-size:11px;color:#a8bfcf}
+.billing-history-top strong{font-size:18px;line-height:1.2;white-space:normal;overflow-wrap:anywhere;text-align:right;font-variant-numeric:tabular-nums;color:#f2c477}
+.billing-history-dates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:15px;padding:12px 0;border-top:1px solid #304b63}
+.billing-history-dates>span{min-width:0;display:flex;flex-direction:column;gap:4px}
+.billing-history-dates small{font-size:11px;color:#a2bacb}
+.billing-history-dates b{font-size:13px;overflow-wrap:anywhere}
+.billing-history-footer{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;padding-top:5px}
+.billing-history-footer>span{margin-right:auto;font-size:11px;color:#8edbcc}
+.billing-history-footer button{white-space:nowrap}
+.billing-history-footer .billing-delete{font-size:19px;min-width:35px;min-height:35px}
+.billing-hero-amount{display:block;margin:12px 0;font-size:32px;line-height:1.2;color:#f3c477;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.billing-summary .billing-history-dates{margin:16px 0 12px}
+.billing-mini-note{padding:11px;border-radius:10px;background:#1b3549;color:#b3ccda;font-size:12px}
+.billing-mini-note b{color:#ecf6ff}
+.billing-legacy-list{min-width:0}
+.billing-legacy-row{min-width:0;padding:12px 0;border-bottom:1px solid #31475f;display:grid;gap:10px}
+.billing-legacy-row:last-child{border-bottom:0}
+.billing-legacy-row>div:first-child{display:grid;gap:4px}
+.billing-legacy-row>div:first-child b{overflow-wrap:anywhere}
+.billing-legacy-row small{color:#a1bacb;font-size:11px}
+.billing-legacy-row strong{font-size:15px;color:#e9f4fc}
+@media(max-width:370px){.billing-history-item{padding:12px}.billing-history-top strong{font-size:16px}.billing-hero-amount{font-size:28px}}

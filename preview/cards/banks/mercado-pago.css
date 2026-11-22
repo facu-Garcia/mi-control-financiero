@@ -1,0 +1,22 @@
+/* Mercado Pago México — black/blue-black physical cards; both chips share identical coordinates.
+ * Presentation-only, without real personal card details. */
+.finance-card--mercado-pago{--card-text:#f1f5f8}
+.finance-card--mercado-pago.finance-card--debit{--card-a:#0e151f;--card-b:#080d14;background:radial-gradient(ellipse 75% 80% at 51% 62%,#1c2835 0%,#111b26 51%,#060b12 100%)}
+.finance-card--mercado-pago.finance-card--credit{--card-a:#0f2e44;--card-b:#071420;background:radial-gradient(ellipse 90% 75% at 50% 52%,#15435d 0%,#0b263d 48%,#061521 100%)}
+.finance-card--mercado-pago .fc-art__mp-word{display:block;position:absolute;top:2.5%;left:6%;font-family:Impact,'Arial Black',Arial,sans-serif;font-size:23cqw;line-height:.79;letter-spacing:-.075em;font-weight:1000;color:#77848c24;text-shadow:1px 1px 1px #02081468;transform:scaleX(1.08);transform-origin:left top;user-select:none}
+.finance-card--mercado-pago.finance-card--credit .fc-art__mp-word{color:#7ab1c022;left:6%;top:3%}
+.finance-card--mercado-pago .fc-brand{top:auto;bottom:9%;left:6%;gap:1.1cqw}
+.finance-card--mercado-pago .fc-brand-name{font-size:5.3cqw;line-height:.87;letter-spacing:-.075em;white-space:normal;width:29cqw}
+.finance-card--mercado-pago .fc-brand-icon--mp{width:12cqw;height:8cqw;border:1px solid #d9e3e9b9;transform:rotate(-20deg);border-radius:50%}
+.finance-card--mercado-pago .fc-brand-icon--mp::before,.finance-card--mercado-pago .fc-brand-icon--mp::after{content:"";position:absolute;display:block;background:#e8f0f49c;height:2px;width:46%;top:50%;transform:rotate(19deg)}
+.finance-card--mercado-pago .fc-brand-icon--mp::before{left:3%}
+.finance-card--mercado-pago .fc-brand-icon--mp::after{right:3%;transform:rotate(-20deg)}
+/* Debit and credit intentionally use EXACTLY the same chip and NFC positions. */
+.finance-card--mercado-pago .fc-chip{top:25%;left:32%;width:13%;height:22%}
+.finance-card--mercado-pago .fc-contactless{top:25%;left:49%;width:7%;height:19%}
+.finance-card--mercado-pago .fc-network{right:6%;bottom:8%}
+.finance-card--mercado-pago .fc-type{left:auto;right:6%;bottom:27%;font-size:3.1cqw;font-weight:600;color:#c4ced4;text-transform:lowercase}
+.finance-card--mercado-pago.finance-card--credit .fc-type{bottom:3.2%;font-size:2.7cqw;letter-spacing:.03em;color:#d1dfeb}
+.finance-card--mercado-pago.finance-card--credit .fc-brand{left:6%;bottom:10%}
+.finance-card--mercado-pago.finance-card--credit .fc-brand-name{font-size:5.5cqw}
+.finance-card--mercado-pago.finance-card--credit .fc-network{bottom:9%}

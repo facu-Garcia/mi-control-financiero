@@ -1,0 +1,15 @@
+/* Nu México: saturated lavender-purple debit / richer violet credit.
+ * Small left-edge notch is a CSS radial mask, as on the physical card references. */
+.finance-card--nu{--card-text:#fff;-webkit-mask-image:radial-gradient(circle 2.2cqw at 0% 22%,transparent 96%,#000 103%);mask-image:radial-gradient(circle 2.2cqw at 0% 22%,transparent 96%,#000 103%)}
+.finance-card--nu.finance-card--debit{--card-a:#b66bda;--card-b:#9448c6;background:linear-gradient(124deg,#c283d9 0%,#b76ad5 37%,#a358c8 71%,#963fc0 100%)}
+.finance-card--nu.finance-card--credit{--card-a:#8505c0;--card-b:#55008b;background:linear-gradient(124deg,#a11ed3 0%,#8908c2 46%,#6500a0 100%)}
+.finance-card--nu .fc-art{background:radial-gradient(ellipse 65% 80% at 40% 29%,#ffffff13,transparent 85%)}
+.finance-card--nu .fc-brand{left:7%;top:11%}
+.finance-card--nu .fc-brand-name{font-family:Georgia,'Times New Roman',serif;font-size:13cqw;font-weight:900;font-style:normal;letter-spacing:-.12em;line-height:1}
+.finance-card--nu .fc-chip{left:75%;top:64%;width:12.5%;height:20%;border-radius:3px}
+.finance-card--nu .fc-contactless{left:88%;top:70%;height:15%;width:7%}
+.finance-card--nu .fc-network{top:11%;right:6%;bottom:auto;width:17%;height:14%}
+.finance-card--nu .fc-type{bottom:8%;left:66%;font-size:3.1cqw;font-weight:600;text-transform:lowercase}
+.finance-card--nu .fc-card-label{display:none}
+/* Preserve user-selected theme overrides without losing the visible notch. */
+.finance-card--nu.finance-card--photo{-webkit-mask-image:none;mask-image:none}
