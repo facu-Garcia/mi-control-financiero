@@ -1,0 +1,10 @@
+# Archivos personales: no publicar
+/backups/
+/estados-de-cuenta/
+/datos-personales/
+*.statement.csv
+*.statement.pdf
+*.backup.json
+*.respaldo.json
+.DS_Store
+Thumbs.db

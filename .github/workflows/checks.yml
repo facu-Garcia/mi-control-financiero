@@ -1,0 +1,31 @@
+name: Verificación de la PWA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Sintaxis y reglas financieras
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar sintaxis de JavaScript
+        run: |
+          node --check logic.js
+          node --check app.js
+          node --check sw.js
+          node --check test-logic.cjs
+      - name: Ejecutar pruebas financieras
+        run: node test-logic.cjs
