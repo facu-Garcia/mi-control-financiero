@@ -1,5 +1,29 @@
 # Historial de cambios
 
+## [0.4.0] - 2026-11-21
+
+### Nuevas funciones
+- El resumen mantiene las cifras principales; ahora los cinco indicadores abren pantallas de análisis con gráficas y filtro por cuenta.
+- Panel de tres respuestas: dinero líquido estimado, deuda estimada y margen conservador de gasto.
+- Suscripciones mensuales programadas: genera cargos al abrir o reactivar la PWA una vez alcanzado su vencimiento; quedan pendientes hasta confirmar el cobro real.
+- Formulario de edición de movimientos y selección automática de tarjeta al abrirlo desde su detalle.
+- Conciliación bancaria: compara saldo declarado y calculado sin inventar movimientos.
+- Historial básico de modificaciones, con datos anteriores y nuevos.
+- Diagnóstico visible de movimientos históricos en la fecha de saldo inicial, evitando duplicaciones.
+
+### Arquitectura
+- Separar lógica de recurrencias e indicadores en `features/finance/`.
+- Separar gráficas/vistas en `features/dashboard/`.
+- Migración no destructiva de IndexedDB de v2 a v3 agregando tiendas de recurrencias, conciliaciones y auditorías.
+- Respaldo y restauración v3 con compatibilidad de lectura para v1/v2, incluyendo recurrencias, conciliaciones, historial e indicadores de confirmación.
+- Excluir cargos recurrentes pendientes de saldos y gastos contabilizados hasta que se confirmen.
+
+### Limitaciones
+- La PWA no puede realizar operaciones mientras está cerrada. Los cargos vencidos se generan al volver a abrirla.
+- Las proyecciones de disponibilidad son conservadoras; no sustituyen los importes oficiales de bancos.
+- Se requiere comprobar restauración real de Drive antes de depender de ella exclusivamente.
+
+
 ## [0.3.2] - 2026-11-21
 
 ### Visual

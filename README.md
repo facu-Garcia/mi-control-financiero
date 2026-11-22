@@ -1,3 +1,31 @@
+# Mi Control Financiero · PWA v0.4.0
+
+## Arquitectura v0.4.0 y protección de datos
+- `logic.js`: saldos, MSI, estados de cuenta, movimientos confirmados
+- `features/finance/insights.js`: tendencias, patrimonio y estimación conservadora de dinero disponible
+- `features/finance/recurring.js`: reglas mensuales y creación idempotente de movimientos pendientes
+- `features/finance/forms.js`: formularios y pantalla de suscripciones / conciliaciones
+- `features/dashboard/dashboard.js` y `dashboard.css`: vistas de detalle y gráficas, sin escribir en IndexedDB
+- `app.js`: orquestación de formularios y rutas; se seguirá dividiendo en próximos lanzamientos
+- `storage.js`: migración de IndexedDB v2 a v3, **sin borrar tiendas anteriores**
+- `drive-sync.js`: mismo flujo OAuth y respaldo cifrado; copia ahora incluye las nuevas colecciones
+
+La página de inicio conserva los importes como centro de atención. Toca patrimonio, ingresos, compras, ahorros o cargos para abrir detalles. Se conservan las cinco pestañas inferiores.
+
+### Configuración de saldos iniciales
+No registres dinero que ya existía como ingreso del mes. En **Cuentas → tarjeta → Editar cuenta / saldo inicial** escribe el saldo bancario a una fecha de referencia. Si registraste ese mismo dinero como ingreso, revisa y elimina/corrige el movimiento para no duplicarlo. Los movimientos fechados en o antes de la fecha base son históricos y **no aumentan** el saldo; la aplicación advierte esta situación.
+
+### Suscripciones
+Desde **Resumen → Administrar suscripciones**, crea una regla de cargo mensual, día, importe y cuenta. La PWA genera un movimiento **pendiente** al abrirse o reactivarse después del vencimiento. Solo cuando confirmas que el cargo aparece en el banco pasa a afectar los saldos y los reportes. Se generan una sola vez por regla y mes. No se afirma que pueda escribir estando cerrada.
+
+### Conciliación y edición
+Desde el detalle de una cuenta, abre **Conciliar saldo** para introducir el saldo real. La diferencia se guarda como diagnóstico, sin alterar movimientos. Desde **Movimientos** puedes editar y consultar un historial de cambios.
+
+### Seguridad
+Antes de probar la nueva versión con datos importantes, exporta un JSON en Ajustes y comprueba que tu respaldo de Google Drive esté conectado y sea restaurable. No borres almacenamiento de Chrome ni desinstales la PWA para actualizarla. Las suscripciones y conciliaciones se incluyen en el respaldo v3.
+
+---
+
 # Mi Control Financiero · PWA v0.3.2
 
 ### Correcciones por institución
