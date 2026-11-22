@@ -1,5 +1,10 @@
 # Historial de cambios
 
+## [0.11.2] - 2026-11-22
+- Corrección de desbordamiento en menús visuales de movimientos y categorías (Android).
+- Altura adaptable de tarjetas, filas de cuadrícula según contenido y desplazamiento seguro dentro del modal.
+
+
 ## [0.11.1] - 2026-11-22
 - Selectores modales visuales de tipo de movimiento y categoría, con iconos y estados seleccionados.
 - Conserva formularios financieros y registros existentes, mejora navegación móvil y por teclado.
