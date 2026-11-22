@@ -97,7 +97,8 @@
       }
       if(!all.some(c=>c.amountDue!=null)&&deps.F.accountBalance(card,movements)>0)missingDue++;
     }
-    const sourceMonths=new Set([today.slice(0,7),end.slice(0,7)]);
+    const sourceMonths=new Set();
+    for(let m=today.slice(0,7);m<=end.slice(0,7);m=deps.F.shiftMonth(m,1))sourceMonths.add(m);
     for(const month of sourceMonths){
       for(const e of occurrences(data,deps.Rec,month)){
         if(e.status==='planned'&&e.date>=today&&e.date<=end&&e.accountType!=='credit')recurringDue+=e.amount;
