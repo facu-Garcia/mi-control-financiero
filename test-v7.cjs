@@ -72,5 +72,5 @@ assert.match(app,/data-action="account-detail"/);
 assert.match(app,/paymentCycleId/);assert.match(app,/case 'back-account'/);
 assert.match(app,/legacy-debt-/);
 assert.match(store,/pocketMoves/);assert.match(store,/pockets/);
-assert.ok(html.indexOf('features/savings/pockets.js')<html.indexOf('app.js?v=0.7.0'));
+assert.ok(html.indexOf('features/savings/pockets.js')<html.indexOf('app.js?v='));
 console.log('✓ v0.7: cajitas sin duplicación, deuda, cortes, pagos asociados, vistas y migración');
