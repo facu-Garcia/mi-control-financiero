@@ -22,10 +22,10 @@
   function reconcileForm(account,expected,money,format,esc,date){
     return `<form id="reconcile-form" class="form"><p>Cuenta: <b>${esc(account.name)}</b></p>
     <p>Saldo estimado de la aplicación a la fecha indicada: <b id="reconcile-expected">${money(expected)}</b></p>
-    <div class="field"><label>Saldo real mostrado por el banco ($)</label><input name="actual" type="number" step=".01" required value="${format(expected)}"></div>
+    <div class="field"><label>Saldo real mostrado por el banco ($)</label><input name="actual" type="number" step=".01" required placeholder="Captura el importe confirmado por tu banco"></div>
     <div class="field"><label>Fecha de verificación</label><input name="date" type="date" required value="${date}"></div>
     <div class="field"><label>Nota (opcional)</label><input name="note" maxlength="150" placeholder="Revisé el saldo en la app bancaria"></div>
-    <p class="inline-note">La conciliación guarda la diferencia, pero no modifica el saldo ni inventa gastos o ingresos. Si hay un error, corrige el movimiento o el saldo inicial correspondiente.</p>
+    <p class="inline-note">Debes capturar el importe del banco para la fecha seleccionada; no se copiará automáticamente el saldo estimado. La conciliación guarda la diferencia, pero no modifica el saldo ni inventa gastos o ingresos. Si hay un error, corrige el movimiento o el saldo inicial correspondiente.</p>
     <button type="submit" class="primary full">Guardar conciliación</button></form>`;
   }
   return {recurringForm,recurringPage,reconcileForm};
