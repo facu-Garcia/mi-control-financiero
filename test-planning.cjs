@@ -93,6 +93,6 @@ assert.ok(index.indexOf('planning.js')<index.indexOf('app.js?v='));
 assert.match(app,/Planning.monthlyObligations/);
 assert.match(app,/Versión 0\.11\.0/);
 assert.match(sw,/planning\.js\?v=0\.11\.0/);
-assert.ok(app.includes("accountList(state.accounts.filter(a=>a.type!=='credit'))"));
+assert.ok(app.includes("accountList(state.accounts.filter(a=>a.type!=='credit'&&a.balanceDate<=localDate()))"));
 assert.ok(!app.includes("accountList(state.accounts.filter(a=>a.type!=='credit').slice(0,4))"));
 console.log('✓ Agenda: hechos vs estimaciones, vencimientos noviembre/diciembre, sumas, calendario y móvil');
