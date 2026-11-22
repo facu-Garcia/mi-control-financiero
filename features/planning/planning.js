@@ -78,7 +78,8 @@
       .sort((a,b)=>a.date.localeCompare(b.date)||a.kind.localeCompare(b.kind)||a.id.localeCompare(b.id));
   }
   function capacity(data,deps,today,days=30){
-    if(!validDate(today)||!Number.isInteger(days)||days<1||days>90)throw Error('Horizonte inválido.');
+    if(!validDate(today))throw Error('Fecha inválida.');
+    if(!Number.isInteger(days)||days<1||days>90)throw Error('Horizonte inválido.');
     const end=plusDays(today,days),accounts=empty(data.accounts),movements=asOf(data.movements,today);
     const liquid=accounts.filter(a=>['debit','cash'].includes(a.type)&&a.balanceDate<=today)
       .reduce((sum,a)=>sum+deps.F.accountBalance(a,movements),0);
