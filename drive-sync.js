@@ -177,7 +177,7 @@
     schedule(){clearTimeout(this.timer);this.timer=setTimeout(()=>{this.sync().catch(err=>this.notify('Sin sincronizar: '+err.message));},1200);}
     async sync(){
       if(!this.ready||!this.token||!this.password||!this.dirty||this.running)return;
-      if(!navigator.onLine){this.notify('Sin conexión · pendiente de Drive');return;}
+      if(typeof navigator!=='undefined'&&navigator.onLine===false){this.notify('Sin conexión · pendiente de Drive');return;}
       this.running=true;this.notify('Sincronizando en Drive…');
       try{
         const remote=await this.readCloud();
