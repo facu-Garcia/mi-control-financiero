@@ -19,7 +19,7 @@ Los estados de cuenta en PDF no se procesan automáticamente. Convierte sus tran
 
 ## Google Drive cifrado
 
-Consulta [docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md). Hay que habilitar Google Drive API y configurar un OAuth Client ID de aplicación web. La sincronización está disponible únicamente durante una sesión activa y autorizada, con conexión a Internet. La contraseña de cifrado no se almacena; **si se pierde, el respaldo es irrecuperable**. Drive no reemplaza los respaldos independientes.
+Consulta [docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md). **Para uso individual, elige Google Auth Platform → Personal Mode**, con origen JavaScript `https://facu-garcia.github.io`, y habilita Google Drive API en el mismo proyecto. Hay que habilitar Google Drive API y configurar un OAuth Client ID de aplicación web. La sincronización está disponible únicamente durante una sesión activa y autorizada, con conexión a Internet. La contraseña de cifrado no se almacena; **si se pierde, el respaldo es irrecuperable**. Drive no reemplaza los respaldos independientes.
 
 ## Desarrollo
 

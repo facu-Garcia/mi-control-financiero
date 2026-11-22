@@ -1,5 +1,15 @@
 # Historial de cambios
 
+## [0.2.1] - 2026-11-21
+
+### Cambiado
+- Actualizar instrucciones de Google Drive a OAuth Personal Mode (un solo usuario, sin verificación).
+- Añadir enlace directo desde Ajustes a la creación de credenciales y a la guía de instalación.
+- Actualizar versión del caché de la PWA para cargar los cambios.
+
+### Seguridad
+- Documentar origen autorizado, permiso mínimo `drive.appdata`, contraseña de cifrado y validación de restauración.
+
 ## [0.2.0] - 2026-11-21
 
 ### Añadido
