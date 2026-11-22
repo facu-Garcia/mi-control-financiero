@@ -9,7 +9,7 @@
   function create(deps){
     if(!deps||typeof deps.getState!=='function')throw Error('El controlador de formularios necesita getState.');
     const {getState,option,field,localDate,val,id,cents,accountTypes,txNames,cats,
-      Cards,CardImages,Billing,F,openModal,closeModal,notify,save,remove,getAccount,
+      Cards,CardImages,Billing,F,openModal,closeModal,notify,save,remove,commitMovement,getAccount,
       money,enhanceAccountPickers,modalInner}=deps;
   function accountForm(existing=null,preferredType='debit'){
     const state=getState();
@@ -200,8 +200,7 @@
       if(type==='transfer'&&(!dest||dest.id===source.id||source.type==='credit'||dest.type==='credit'))throw Error('Elige dos cuentas distintas de dinero o ahorro.');
       const months=type==='expense'&&source.type==='credit'?Number(f.elements.months.value):1;
       const movement={...(existing||{}),id:existing?.id||id(),type,date:f.elements.date.value,accountId,toAccountId:(type==='payment'||type==='transfer')?toAccountId:'',amount,category:type==='expense'?f.elements.category.value:type==='income'?'Ingresos':type==='yield'?'Rendimientos':'',description:f.elements.description.value.trim(),months,paymentCycleId:type==='payment'?f.elements.paymentCycleId.value:'',pocketId:type==='yield'?String(existing?.pocketId||''):'',payrollKind:type==='income'?String(existing?.payrollKind||''):'',payrollKey:type==='income'?String(existing?.payrollKey||''):'',createdAt:existing?.createdAt||new Date().toISOString()};
-      if(existing){await save('audits',{id:id(),movementId:existing.id,date:new Date().toISOString(),before:existing,after:movement});}
-      await save('movements',movement);closeModal();notify(existing?'Movimiento actualizado':'Movimiento registrado');
+      await commitMovement(movement,existing);closeModal();notify(existing?'Movimiento actualizado':'Movimiento registrado');
     }catch(err){notify(err.message||'No se pudo registrar el movimiento');}});
   }
 
