@@ -1,3 +1,35 @@
+# Mi Control Financiero · PWA v0.3
+
+## Arquitectura modular (JavaScript estático compatible con GitHub Pages)
+
+| Módulo | Responsabilidad |
+|---|---|
+| `logic.js` | Reglas de movimientos, cortes de tarjeta, MSI y saldos |
+| `csv.js` | Importación/exportación CSV, validaciones y deduplicación |
+| `storage.js` | Apertura de IndexedDB y diagnóstico del almacenamiento |
+| `drive-sync.js` | OAuth y sincronización de respaldo cifrado con Drive |
+| `card-designs.js` | Identificación de banco, estilos y HTML de tarjetas |
+| `card-designs.css` | Diseño visual de las tarjetas, sin cálculos financieros |
+| `card-images.js` | Tratamiento de imágenes personalizadas locales |
+| `app.js` | Controlador e integración de pantallas y formularios |
+
+Se mantienen módulos JavaScript globales para una PWA estática sin compilación. La arquitectura está separada **por responsabilidades**, como evolución incremental hacia MVC; `app.js` todavía contiene varios controladores y se puede dividir por pantalla en versiones posteriores.
+
+### Importar tus cuentas
+1. Abre **Cuentas → Importar cuentas CSV**.
+2. Selecciona el archivo CSV privado proporcionado en el chat.
+3. Confirma las ocho cuentas. Los saldos y límites marcados en cero significan **pendientes de capturar**, no saldos verificados.
+4. Abre una tarjeta, pulsa **Editar cuenta** y personaliza diseño, límite y fecha de corte.
+
+La columna `diseno` es opcional: `auto`, `classic`, `dark`, `gradient` o `light`. La imagen de fondo se personaliza desde la aplicación y **no puede importarse desde CSV**, para evitar introducir imágenes potencialmente enormes o peligrosas como valores de texto.
+
+### Apariencia de tarjetas
+Los diseños son interpretaciones CSS de las marcas, no imágenes oficiales ni copias idénticas de una tarjeta emitida. Si quieres reproducir más fielmente tu versión, puedes importar una imagen decorativa PNG/JPG/WebP **que no revele información sensible**, la app la reescala, comprime y guarda junto a la cuenta. No publica esa imagen en GitHub. Tanto los estilos como la imagen quedan en JSON/Drive.
+
+**Antes de importar datos reales**, confirma que el respaldo cifrado y la restauración funcionen desde un dispositivo de prueba.
+
+---
+
 # Mi Control Financiero · PWA v0.2
 
 Aplicación personal instalable en Android, publicada como sitio estático en GitHub Pages. **El código es público; tus datos personales nunca se suben al repositorio.**

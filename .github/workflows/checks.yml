@@ -26,6 +26,9 @@ jobs:
           node --check logic.js
           node --check csv.js
           node --check storage.js
+          node --check card-designs.js
+          node --check card-images.js
+          node --check test-cards.cjs
           node --check drive-sync.js
           node --check app.js
           node --check sw.js
@@ -39,3 +42,4 @@ jobs:
           node test-csv.cjs
           node test-drive.cjs
           node test-storage.cjs
+          node test-cards.cjs

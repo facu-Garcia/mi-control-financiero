@@ -1,0 +1,54 @@
+/* Card component: design-only; no official card photos, card numbers or sensitive identifiers. */
+.card-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));gap:16px;margin:12px 0 20px}
+.card-button{background:transparent;border:0;padding:0;cursor:pointer;text-align:left;border-radius:18px;min-width:0}
+.card-button:focus-visible{outline:3px solid #73d5f4;outline-offset:4px}
+.finance-card{--card-a:#193850;--card-b:#0d1829;--card-text:#fff;position:relative;display:block;isolation:isolate;overflow:hidden;aspect-ratio:1.585/1;width:100%;max-width:440px;margin:0;border-radius:17px;background:linear-gradient(135deg,var(--card-a),var(--card-b));color:var(--card-text);box-shadow:0 14px 34px #03122352, inset 0 1px #ffffff36;border:1px solid #ffffff18;font-family:system-ui,-apple-system,Segoe UI,sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease}
+.card-button:hover .finance-card{transform:translateY(-2px);box-shadow:0 20px 37px #03122378}
+.finance-card::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,#ffffff1e,transparent 44%,#00000018)}
+.finance-card--inbursa{--card-a:#101d45;--card-b:#07295b}
+.finance-card--mercado-pago.finance-card--debit{--card-a:#05aedc;--card-b:#0874c8}
+.finance-card--mercado-pago.finance-card--credit{--card-a:#19293c;--card-b:#071727}
+.finance-card--nu.finance-card--debit{--card-a:#aa82ea;--card-b:#713ed0}
+.finance-card--nu.finance-card--credit{--card-a:#8633be;--card-b:#46127e}
+.finance-card--bbva{--card-a:#0662b8;--card-b:#004b94}
+.finance-card--revolut{--card-a:#e52b8a;--card-b:#1947ba;background:linear-gradient(125deg,#d82180 0%,#8b328b 45%,#1849af 100%)}
+.finance-card--bdesa{--card-a:#256c66;--card-b:#0e3c42}
+.finance-card--classic{background:linear-gradient(135deg,var(--card-a),var(--card-b))}
+.finance-card--dark{background:linear-gradient(125deg,#1d2938,#080d18)}
+.finance-card--gradient{background:linear-gradient(125deg,#0aaaba 0%,#4b42af 49%,#a04a9c 100%)}
+.finance-card--light{--card-text:#22364a;background:linear-gradient(130deg,#f8fcff,#c6d8e7)}
+.finance-card--photo{background:#121b2d;--card-text:white}
+.finance-card__photo{position:absolute;z-index:-1;inset:0;width:100%;height:100%;object-fit:cover}
+.finance-card--photo::after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,#0007 0%,transparent 39%,#0009 100%)}
+.finance-card__pattern{position:absolute;inset:0;pointer-events:none;opacity:.66}
+.finance-card--inbursa .finance-card__pattern{background:radial-gradient(ellipse 70% 75% at 68% 47%,transparent 35%,#83d2e723 37%,transparent 40%,#9cd8fa15 45%,transparent 49%),linear-gradient(145deg,transparent 55%,#37afd01f 55% 63%,transparent 64%)}
+.finance-card--mercado-pago .finance-card__pattern::after{content:"MERCADO PAGO";position:absolute;right:-22px;top:27%;font-size:clamp(35px,7vw,70px);font-weight:1000;line-height:.84;letter-spacing:-5px;max-width:85%;opacity:.10;transform:rotate(-12deg)}
+.finance-card--nu .finance-card__pattern{background:radial-gradient(circle at 79% 31%,#f8e8ff28,transparent 51%),linear-gradient(30deg,transparent 45%,#ffffff17 50%,transparent 55%)}
+.finance-card--bbva .finance-card__pattern::after{content:"BBVA";position:absolute;font-size:clamp(75px,15vw,150px);font-weight:1000;letter-spacing:-12px;left:-8%;bottom:-30%;opacity:.09}
+.finance-card--revolut .finance-card__pattern{background:radial-gradient(circle at 25% 28%,#ffb9ec32,transparent 46%)}
+.finance-card--photo .finance-card__pattern{display:none}
+.finance-card__top,.finance-card__middle,.finance-card__bottom{position:absolute;left:8%;right:8%;display:flex;align-items:center;justify-content:space-between;z-index:1;min-width:0}
+.finance-card__top{top:10%}.finance-card__middle{top:43%;justify-content:flex-start;gap:15px}
+.finance-card__bottom{bottom:9%;align-items:flex-end;gap:10px}
+.finance-card__brand{font-size:clamp(16px,3.6vw,27px);font-weight:850;letter-spacing:-.045em;line-height:1.1;min-width:0;text-shadow:0 2px 5px #0013}
+.finance-card--mercado-pago .finance-card__brand{font-size:clamp(13px,3.2vw,22px);letter-spacing:-.055em}
+.finance-card--inbursa .finance-card__brand{letter-spacing:-.01em}
+.finance-card--nu .finance-card__brand{font-size:clamp(35px,7vw,52px);font-weight:1000;letter-spacing:-.14em;font-style:italic;line-height:.8}
+.finance-card--bbva .finance-card__brand{font-size:clamp(28px,6vw,44px);letter-spacing:-.09em}
+.finance-card--revolut .finance-card__brand{font-size:clamp(22px,4.6vw,34px);letter-spacing:-.075em}
+.finance-card__kind{font-size:10px;letter-spacing:.17em;font-weight:800;white-space:nowrap;margin-left:8px;background:#0003;padding:6px 8px;border:1px solid #ffffff3c;border-radius:7px}
+.finance-card--light .finance-card__kind{background:#ffffff9c;border-color:#798c9b61}
+.finance-card__chip{position:relative;width:37px;height:28px;display:block;border:1px solid #866d42;border-radius:6px;background:linear-gradient(135deg,#fce5ad,#d6b77c 45%,#eee4bd 77%,#b9945e);box-shadow:inset 0 1px 2px #fffc, 0 1px 3px #0005}
+.finance-card__chip:before,.finance-card__chip:after{content:"";position:absolute;border:1px solid #665a49aa}
+.finance-card__chip:before{inset:0 12px;border-top:0;border-bottom:0;border-radius:5px}
+.finance-card__chip:after{left:0;right:0;top:10px;height:7px;border-left:0;border-right:0;border-radius:30%}
+.finance-card__chip i{position:absolute;border:1px solid #665a49aa;inset:7px 10px;border-radius:3px}
+.finance-card__nfc{transform:rotate(3deg);font-size:18px;font-weight:700;letter-spacing:-7px;opacity:.8;padding-right:5px}
+.finance-card__name{font-size:clamp(10px,2.5vw,14px);letter-spacing:.08em;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:85%;text-shadow:0 2px 5px #0006}
+.finance-card__network{font-size:21px;letter-spacing:-9px;margin-right:11px;opacity:.8}
+.card-editor-preview{max-width:370px;margin:auto}
+.card-editor-help{margin:4px 0 6px;font-size:12px;color:var(--muted)}
+.card-image-actions{display:flex;gap:8px;flex-wrap:wrap}
+.card-image-actions>button{flex:1}
+.card-gallery .finance-card{max-width:none}
+@media(max-width:420px){.card-gallery{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));justify-items:center}.card-button{width:100%}.finance-card__kind{font-size:9px;padding:4px 6px}}

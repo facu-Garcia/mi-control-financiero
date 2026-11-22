@@ -1,5 +1,26 @@
 # Historial de cambios
 
+## [0.3.0] - 2026-11-21
+
+### Añadido
+- Nuevo componente `card-designs.js` con estilos CSS basados en las identidades visuales de Inbursa, Mercado Pago, Nu, BBVA, Revolut y BDESA (diseños ilustrativos, no reproducciones oficiales).
+- Nuevo `card-designs.css` para controlar el aspecto sin tocar la lógica de movimientos.
+- Nuevo `card-images.js` con validación de tipo, límite de tamaño, compresión y eliminación de metadatos al recrear la imagen.
+- Personalización en editar cuenta: estilo y fondo importado desde Android con vista previa.
+- Compatibilidad de estilos de tarjetas con CSV mediante nueva columna opcional `diseno`.
+- Exportación CSV de cuentas que no incluye imágenes de fondo.
+
+### Cambiado
+- `app.js` delega la visualización de tarjetas en un módulo; `logic.js` y `drive-sync.js` no requieren modificaciones.
+- Los respaldos JSON y Drive incluyen los estilos e imágenes personalizadas de tarjetas al restaurar.
+- Caché PWA actualizado a 0.3.0.
+
+### Seguridad
+- No cargar fotos reales de tarjetas que muestren número, nombre completo, vigencia o CVV; solo fondos decorativos sin datos privados.
+- Las cuentas financieras se importan mediante CSV privado, no se publican en GitHub.
+- El CSV no es un respaldo de imágenes; esas se conservan en JSON/Drive.
+
+
 ## [0.2.4] - 2026-11-21
 
 ### Corregido

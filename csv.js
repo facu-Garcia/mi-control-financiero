@@ -63,7 +63,9 @@
       const base=r.fecha_saldo||baseline;if(!date(base))throw Error(`Fila ${row}: fecha_saldo debe ser AAAA-MM-DD.`);
       const start=amount(r.saldo_inicial||'0'),debt=amount(r.deuda_inicial||'0'),limit=amount(r.limite_credito||'0');
       if(debt<0||limit<0)throw Error(`Fila ${row}: deuda o límite negativos.`);
-      const a={id:'csv-'+(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+i),name,institution,type:t,balanceDate:base,initialBalance:t==='credit'?0:start,initialDebt:t==='credit'?debt:0,creditLimit:t==='credit'?limit:0,cutDay:day(r.dia_corte),dueDay:day(r.dia_pago),createdAt:now};
+      const rawStyle=String(r.diseno||r.estilo||'auto').trim().toLowerCase();
+      if(!['auto','classic','dark','gradient','light'].includes(rawStyle))throw Error(`Fila ${row}: diseño inválido (auto, classic, dark, gradient o light).`);
+      const a={id:'csv-'+(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+i),name,institution,type:t,balanceDate:base,initialBalance:t==='credit'?0:start,initialDebt:t==='credit'?debt:0,creditLimit:t==='credit'?limit:0,cutDay:day(r.dia_corte),dueDay:day(r.dia_pago),cardStyle:rawStyle,cardImage:'',createdAt:now};
       imported.push(a);unique.add(key);
     });
     return {items:imported,skipped,total:items.length};

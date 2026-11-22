@@ -1,5 +1,5 @@
-const VERSION = 'mcf-v2-4-20261121';
-const ASSETS = ['./','./index.html','./styles.css','./logic.js','./app.js?v=0.2.4','./csv.js','./storage.js?v=0.2.4','./drive-sync.js?v=0.2.4','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
+const VERSION = 'mcf-v3-0-20261121';
+const ASSETS = ['./','./index.html','./styles.css','./logic.js','./app.js?v=0.3.0','./csv.js?v=0.3.0','./storage.js?v=0.2.4','./card-designs.css?v=0.3.0','./card-designs.js?v=0.3.0','./card-images.js?v=0.3.0','./drive-sync.js?v=0.2.4','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('mcf-')&&k!==VERSION).map(k=>caches.delete(k)))),self.clients.claim()])));
 self.addEventListener('fetch', event => {

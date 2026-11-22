@@ -5,6 +5,8 @@
   const CSV = window.FinanceCSV;
   const G = window.FinanceDrive;
   const S = window.FinanceStorage;
+  const Cards = window.FinanceCards;
+  const CardImages = window.FinanceCardImages;
   const DB_NAME = 'mi-control-financiero-db';
   const DB_VERSION = 2;
   const accountTypes = {debit:'Cuenta de débito',credit:'Tarjeta de crédito',cash:'Efectivo',saving:'Ahorro',pocket:'Cajita / apartado'};
@@ -88,10 +90,8 @@
   function header(title,detail=''){return `<div class="page-head"><div><div class="eyebrow">${esc(detail||'Tu centro financiero')}</div><h1>${esc(title)}</h1></div><input id="month-control" aria-label="Mes del reporte" type="month" class="month-control" value="${esc(selectedMonth)}"></div>`;}
   function sectionTitle(t,action='',label=''){return `<div class="section-title"><h2>${esc(t)}</h2>${action?`<button class="text-btn" data-action="${esc(action)}">${esc(label||'Ver más')}</button>`:''}</div>`;}
   function blank(message,button=''){return `<div class="empty"><span class="symbol">◈</span>${esc(message)}${button?`<div style="margin-top:14px"><button class="secondary small" data-action="${esc(button)}">${button==='add-account'?'Agregar mi primera cuenta':'Registrar movimiento'}</button></div>`:''}</div>`;}
-  function cardTile(a){
-    const theme=badgeFor(a),credit=a.type==='credit';
-    return `<div class="bank-card" style="--bank:${esc(theme.color)}"><div class="bank-card-top"><b>${esc(theme.label)}</b><span class="card-kind">${credit?'CRÉDITO':a.type==='debit'?'DÉBITO':a.type==='pocket'?'CAJITA':a.type==='saving'?'AHORRO':'EFECTIVO'}</span></div><div class="card-chip">▦</div><div class="bank-card-bottom"><span>${esc(a.name)}</span><span>${credit?'▰':'◉'}</span></div></div>`;
-  }
+  // Presentación independiente en card-designs.js; la lógica de saldos sigue en logic.js.
+  function cardTile(a){return Cards.render(a);}
   function accountList(accs,clickable=true){return accs.length?accs.map(a=>{
     const balance=F.accountBalance(a,state.movements),credit=a.type==='credit',theme=badgeFor(a);
     const missing=credit&&(a.cutDay===0||a.creditLimit===0);
@@ -155,12 +155,20 @@
   const option=(v,label,selected)=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(label)}</option>`;
   function field(label,name,type='text',value='',hint='',extra=''){return `<div class="field"><label for="f-${esc(name)}">${esc(label)}</label><input id="f-${esc(name)}" name="${esc(name)}" type="${esc(type)}" value="${esc(value)}" ${extra}>${hint?`<small>${esc(hint)}</small>`:''}</div>`;}
   function accountForm(existing=null){
-    const a=existing||{name:'',institution:'',type:'debit',balanceDate:localDate(-1),initialBalance:0,initialDebt:0,creditLimit:0,cutDay:0,dueDay:0};
+    const a=existing||{name:'',institution:'',type:'debit',balanceDate:localDate(-1),initialBalance:0,initialDebt:0,creditLimit:0,cutDay:0,dueDay:0,cardStyle:'auto',cardImage:''};
+    let selectedImage=Cards.safePicture(a.cardImage);
     openModal(existing?'Editar cuenta':'Nueva cuenta o tarjeta',`<form id="account-form" class="form">
       ${field('Nombre visible','name','text',a.name,'Ejemplo: Mercado Pago, BBVA Nómina, Nu Cajita','required maxlength="70"')}
       ${field('Institución (opcional)','institution','text',a.institution,'No introduzcas números de tarjeta o cuenta.','maxlength="70"')}
       <div class="field"><label for="f-type">Tipo de cuenta</label><select name="type" id="f-type" ${existing?'disabled':''}>${Object.entries(accountTypes).map(([v,l])=>option(v,l,a.type)).join('')}</select></div>
-      <div id="asset-fields">${field('Saldo al cierre de la fecha base ($)','initialBalance','number',val(a.initialBalance),'Los movimientos anteriores a esta fecha serán solo históricos.','step="0.01" required')}</div>
+      <div id="card-visual-editor">
+         <div class="section-title"><h2>Diseño de la tarjeta</h2></div>
+         <div class="card-editor-preview" id="card-preview"></div>
+         ${Cards.selector(a.cardStyle)}
+         <div class="field"><label for="card-photo-input">Imagen de fondo personalizada (opcional)</label><input id="card-photo-input" type="file" accept="image/jpeg,image/png,image/webp"><small>La imagen se comprime y guarda en tus datos privados; no se publica en GitHub. No subas fotos con números completos, CVV, vencimiento o datos privados visibles.</small></div>
+         <div class="card-image-actions"><button type="button" class="secondary small" id="card-photo-clear">Quitar imagen personalizada</button></div>
+       </div>
+       <div id="asset-fields">${field('Saldo al cierre de la fecha base ($)','initialBalance','number',val(a.initialBalance),'Los movimientos anteriores a esta fecha serán solo históricos.','step="0.01" required')}</div>
       <div id="credit-fields">${field('Deuda inicial al cierre de la fecha base ($)','initialDebt','number',val(a.initialDebt),'Incluye compras existentes antes de registrar movimientos.','min="0" step="0.01"')}
         <div class="form-row">${field('Límite de crédito ($)','creditLimit','number',val(a.creditLimit),'','min="0" step="0.01"')}${field('Día de corte','cutDay','number',a.cutDay||'','Si aún no lo conoces, déjalo vacío.','min="1" max="31"')}</div>
         ${field('Día habitual de pago (informativo)','dueDay','number',a.dueDay||'','Confirma en el banco el vencimiento exacto de cada corte.','min="1" max="31"')}</div>
@@ -171,12 +179,38 @@
     </form>`);
     const f=document.getElementById('account-form');
     const toggle=()=>{const credit=(existing?.type||f.elements.type.value)==='credit';document.getElementById('asset-fields').hidden=credit;document.getElementById('credit-fields').hidden=!credit;};
-    f.elements.type.addEventListener('change',toggle);toggle();
+    const paintCard=()=>{
+      const kind=existing?.type||f.elements.type.value;
+      const isCard=kind==='debit'||kind==='credit';
+      document.getElementById('card-visual-editor').hidden=!isCard;
+      if(isCard)document.getElementById('card-preview').innerHTML=Cards.render({
+        ...a,name:f.elements.name.value.trim()||'Mi tarjeta',
+        institution:f.elements.institution.value.trim(),
+        type:kind,cardStyle:f.elements.cardStyle.value,cardImage:selectedImage
+      });
+    };
+    f.elements.type.addEventListener('change',()=>{toggle();paintCard();});
+    f.elements.institution.addEventListener('input',paintCard);
+    f.elements.name.addEventListener('input',paintCard);
+    f.elements.cardStyle.addEventListener('change',paintCard);
+    const imageInput=document.getElementById('card-photo-input');
+    imageInput.addEventListener('change',async()=>{
+      if(!imageInput.files?.[0])return;
+      imageInput.disabled=true;
+      try{selectedImage=await CardImages.prepare(imageInput.files[0]);paintCard();notify('Imagen preparada. Guarda la cuenta para aplicarla.');}
+      catch(error){notify(error?.message||'No se pudo procesar la imagen.');}
+      finally{imageInput.disabled=false;imageInput.value='';}
+    });
+    document.getElementById('card-photo-clear').addEventListener('click',()=>{selectedImage='';paintCard();notify('Imagen retirada de la vista previa. Guarda los cambios.');});
+    toggle();paintCard();
     f.addEventListener('submit',async e=>{e.preventDefault();try{
       const type=existing?.type||f.elements.type.value,base=f.elements.balanceDate.value;
       if(!base)throw Error('Selecciona la fecha del saldo inicial.');
       const aNew={id:existing?.id||id(),name:f.elements.name.value.trim(),institution:f.elements.institution.value.trim(),type,balanceDate:base,
-        initialBalance:cents(f.elements.initialBalance.value),initialDebt:cents(f.elements.initialDebt.value),creditLimit:cents(f.elements.creditLimit.value),cutDay:Number(f.elements.cutDay.value||0),dueDay:Number(f.elements.dueDay.value||0),createdAt:existing?.createdAt||new Date().toISOString()};
+        initialBalance:cents(f.elements.initialBalance.value),initialDebt:cents(f.elements.initialDebt.value),creditLimit:cents(f.elements.creditLimit.value),cutDay:Number(f.elements.cutDay.value||0),dueDay:Number(f.elements.dueDay.value||0),
+         cardStyle:(type==='credit'||type==='debit')?Cards.styleOf(f.elements.cardStyle.value):'auto',
+         cardImage:(type==='credit'||type==='debit')?selectedImage:'',
+         createdAt:existing?.createdAt||new Date().toISOString()};
       if(!aNew.name)throw Error('Escribe el nombre de la cuenta.');
       if([aNew.initialBalance,aNew.initialDebt,aNew.creditLimit].some(x=>!Number.isSafeInteger(x)))throw Error('Ingresa montos válidos.');
       if(type==='credit'&&(!Number.isInteger(aNew.cutDay)||aNew.cutDay<0||aNew.cutDay>31||!Number.isInteger(aNew.dueDay)||aNew.dueDay<0||aNew.dueDay>31))throw Error('El día de corte y pago debe ser del 1 al 31, o vacío si está pendiente.');
@@ -237,7 +271,7 @@
     const a=getAccount(aid);if(!a)return;
     const balance=F.accountBalance(a,state.movements),tx=sortTx(state.movements.filter(m=>m.accountId===aid||m.toAccountId===aid)).slice(0,12);
     const card=a.type==='credit';const breakdown=card?F.statementCharges(a,state.movements,selectedMonth):null;
-    openModal(a.name,`<div class="panel"><div class="eyebrow">${card?'Deuda estimada':'Saldo disponible estimado'}</div><div class="summary-figure">${money(balance)}</div><div class="help">Saldo base al cierre del ${shortDate(a.balanceDate)}: ${money(card?a.initialDebt:a.initialBalance)}</div>
+    openModal(a.name,`${Cards.isCard(a)?'<div class="card-editor-preview" style="margin-bottom:16px">'+Cards.render(a)+'</div>':''}<div class="panel"><div class="eyebrow">${card?'Deuda estimada':'Saldo disponible estimado'}</div><div class="summary-figure">${money(balance)}</div><div class="help">Saldo base al cierre del ${shortDate(a.balanceDate)}: ${money(card?a.initialDebt:a.initialBalance)}</div>
       ${card?`<div class="divider"></div><div class="report-line"><span>Límite de crédito</span><b>${money(a.creditLimit)}</b></div><div class="report-line"><span>Disponible aproximado</span><b>${a.creditLimit?money(a.creditLimit-balance):'Por configurar'}</b></div><div class="report-line"><span>Día de corte</span><b>${a.cutDay?esc(a.cutDay):'Por configurar'}</b></div><div class="report-line"><span>Día habitual de pago</span><b>${a.dueDay?esc(a.dueDay):'Por configurar'}</b></div><div class="report-line"><span>Cargos estimados del corte de ${esc(monthName(selectedMonth))}</span><b>${money(breakdown.total)}</b></div>`:''}</div>
       ${sectionTitle('Movimientos relacionados')}<div class="panel">${txList(tx)}</div><div class="toolbar"><button class="secondary small" id="edit-account-btn">Editar cuenta</button></div>
       <p class="footnote">Las compras anteriores a la fecha base aparecen en el historial, pero no modifican el saldo actual.</p>`);
@@ -321,7 +355,7 @@
       ${field('Meta de ahorro mensual ($)','savingsTarget','number',val(state.settings.savingsTarget||0),'Esta cifra es una meta, no un saldo de cuenta.','min="0" step="0.01"')}
       <button type="submit" class="primary full">Guardar preferencias</button></form>
       <div class="divider"></div><div class="section-title"><h2>Seguridad y archivos</h2></div>
-      <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
+      <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
       <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
@@ -333,6 +367,16 @@
     }catch(err){notify(err.message);}});
   }
   function downloadFile(name,contents,mime){const file=new Blob([contents],{type:mime});const href=URL.createObjectURL(file);const a=document.createElement('a');a.href=href;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),5000);}
+  function exportAccountsCsv(){
+    const headers=['nombre','institucion','tipo','fecha_saldo','saldo_inicial','deuda_inicial','limite_credito','dia_corte','dia_pago','diseno'];
+    const rows=state.accounts.map(a=>({
+      nombre:a.name,institucion:a.institution||'',tipo:a.type,
+      fecha_saldo:a.balanceDate,saldo_inicial:val(a.initialBalance),deuda_inicial:val(a.initialDebt),
+      limite_credito:val(a.creditLimit),dia_corte:a.cutDay||'',dia_pago:a.dueDay||'',diseno:Cards.styleOf(a.cardStyle)
+    }));
+    downloadFile('mis-cuentas-'+localDate()+'.csv',CSV.format(rows,headers),'text/csv;charset=utf-8');
+    notify('Cuentas exportadas. Las imágenes personalizadas quedan en el respaldo JSON.');
+  }
   function exportBackup(){const payload={...snapshot(),exportedAt:new Date().toISOString()};downloadFile(`mis-finanzas-respaldo-${localDate()}.json`,JSON.stringify(payload,null,2),'application/json');notify('Respaldo exportado. Guárdalo en un lugar privado.');}
   function exportReport(){const payload={...F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth),budgets:state.budgets.map(b=>({...b,accountName:b.accountId==='all'?'Todas las cuentas':getAccount(b.accountId)?.name||'',spent:budgetSpend(b)}))};downloadFile(`mi-informe-${selectedMonth}.json`,JSON.stringify(payload,null,2),'application/json');notify('Informe mensual exportado');}
   function exportCsv(){const r=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth);const rows=[['fecha','mes_financiero','tipo','cuenta_origen','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI']];
@@ -345,7 +389,8 @@
     const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);
     const accounts=x.accounts.map(a=>{
       if(!validId(a.id)||!Object.hasOwn(accountTypes,a.type)||typeof a.name!=='string'||a.name.length>90||!validDate(a.balanceDate)||!validMoney(a.initialBalance)||!validMoney(a.initialDebt)||!validMoney(a.creditLimit)||!Number.isInteger(a.cutDay)||a.cutDay<0||a.cutDay>31||!Number.isInteger(a.dueDay)||a.dueDay<0||a.dueDay>31)throw Error('El respaldo contiene una cuenta inválida.');
-      return {id:a.id,name:a.name,institution:String(a.institution||'').slice(0,90),type:a.type,balanceDate:a.balanceDate,initialBalance:a.initialBalance,initialDebt:a.initialDebt,creditLimit:a.creditLimit,cutDay:a.cutDay,dueDay:a.dueDay,createdAt:String(a.createdAt||'')};
+      return {id:a.id,name:a.name,institution:String(a.institution||'').slice(0,90),type:a.type,balanceDate:a.balanceDate,initialBalance:a.initialBalance,initialDebt:a.initialDebt,creditLimit:a.creditLimit,cutDay:a.cutDay,dueDay:a.dueDay,
+         cardStyle:Cards.styleOf(a.cardStyle),cardImage:Cards.safePicture(a.cardImage),createdAt:String(a.createdAt||'')};
     });
     const idMap=new Map(accounts.map(a=>[a.id,a]));if(idMap.size!==accounts.length)throw Error('Hay cuentas duplicadas.');
     const movements=x.movements.map(m=>{
@@ -387,8 +432,9 @@
       case 'export-backup':exportBackup();break;case 'export-report':exportReport();break;case 'export-csv':exportCsv();break;
       case 'import-backup':document.getElementById('import-file').click();break;
       case 'import-accounts':document.getElementById('import-accounts-file').click();break;
+      case 'export-accounts':exportAccountsCsv();break;
       case 'import-movements':document.getElementById('import-movements-file').click();break;
-      case 'sample-accounts':downloadFile('plantilla-cuentas.csv',CSV.format([],['nombre','institucion','tipo','fecha_saldo','saldo_inicial','deuda_inicial','limite_credito','dia_corte','dia_pago']),'text/csv;charset=utf-8');break;
+      case 'sample-accounts':downloadFile('plantilla-cuentas.csv',CSV.format([],['nombre','institucion','tipo','fecha_saldo','saldo_inicial','deuda_inicial','limite_credito','dia_corte','dia_pago','diseno']),'text/csv;charset=utf-8');break;
       case 'sample-movements':downloadFile('plantilla-movimientos.csv',CSV.format([],['fecha','tipo','cuenta','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI','referencia']),'text/csv;charset=utf-8');break;
       case 'add-budget':budgetForm();break;case 'remove-budget':if(confirm('¿Eliminar este límite?')){await remove('budgets',target.dataset.id);}break;
       case 'drive-sync':if(!drive?.ready)notify('Conecta Google Drive desde Ajustes.');else {drive.dirty=true;await drive.sync();}break;
@@ -407,8 +453,8 @@
   async function init(){
     localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage){
-        const missing=['Finance','FinanceCSV','FinanceStorage'].filter(name=>!window[name]).join(', ');
+      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages){
+        const missing=['Finance','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages'].filter(name=>!window[name]).join(', ');
         throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
       }
       if(!db)db=await openDb();
