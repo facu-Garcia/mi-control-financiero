@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.10.1] - 2026-11-22
+- Rediseñar el calendario como agenda de movimientos efectivos, separando compromisos por vencimiento y fechas informativas opcionales.
+- Mostrar pagos de tarjetas en el mes de su fecha límite y distinguirlos del horizonte de capacidad de pago de 30 días.
+- Corregir selector del mes y año, estados ambiguos e interferencias visuales del botón flotante en móvil.
+- Extender regresiones de fechas y sumas con escenarios de Nu y Mercado Pago, sin datos bancarios ni credenciales reales.
+
+
 ## [0.10.0] - 2026-11-22
 - Añadir planificación financiera con calendario por mes y desglose de capacidad de pago para 30 días.
 - Visualizar fechas estimadas y confirmadas de nómina, pagos recurrentes, cortes y pagos de tarjetas sin escribir movimientos.
