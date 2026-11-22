@@ -24,8 +24,15 @@ jobs:
       - name: Comprobar sintaxis de JavaScript
         run: |
           node --check logic.js
+          node --check csv.js
+          node --check drive-sync.js
           node --check app.js
           node --check sw.js
           node --check test-logic.cjs
+          node --check test-csv.cjs
+          node --check test-drive.cjs
       - name: Ejecutar pruebas financieras
-        run: node test-logic.cjs
+        run: |
+          node test-logic.cjs
+          node test-csv.cjs
+          node test-drive.cjs

@@ -1,5 +1,27 @@
 # Historial de cambios
 
+## [0.2.0] - 2026-11-21
+
+### Añadido
+- Importación CSV de cuentas y tarjetas sin guardar datos personales en GitHub.
+- Importación CSV de movimientos con validación, confirmación y prevención de duplicados.
+- Plantillas CSV descargables desde Ajustes.
+- Tarjetas visuales con colores por institución y distinción de crédito y débito.
+- Iconos visuales por tipo de movimiento y categoría.
+- Gráfica de distribución de gastos y límites mensuales globales o por tarjeta/categoría.
+- Respaldo cifrado opcional a Google Drive mediante OAuth en navegador (requiere configuración).
+- Pruebas de importación CSV y compatibilidad con respaldos 0.1.
+
+### Cambiado
+- IndexedDB esquema v2 incorpora presupuestos sin borrar datos existentes.
+- Tarjetas con cortes desconocidos pueden configurarse después; no se inventa una fecha.
+- Se protege la nube contra sustituciones accidentales si difieren los datos locales.
+
+### Limitaciones
+- La sincronización no funciona cuando la PWA está cerrada o el token OAuth expiró.
+- Respaldo Drive de una sola versión, sin historial interno ni sincronización multiusuario transaccional.
+- Activación de Drive y prueba final requieren tu propio OAuth Client ID de Google Cloud.
+
 ## [0.1.0] - 2026-11-21
 
 ### Añadido

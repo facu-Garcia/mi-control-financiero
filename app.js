@@ -2,19 +2,24 @@
 (() => {
   'use strict';
   const F = window.Finance;
+  const CSV = window.FinanceCSV;
+  const G = window.FinanceDrive;
   const DB_NAME = 'mi-control-financiero-db';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const accountTypes = {debit:'Cuenta de débito',credit:'Tarjeta de crédito',cash:'Efectivo',saving:'Ahorro',pocket:'Cajita / apartado'};
   const typeIcons = {debit:'▤',credit:'▰',cash:'▣',saving:'◇',pocket:'⬡'};
   const txNames = {expense:'Gasto',income:'Ingreso',transfer:'Transferencia',payment:'Pago de tarjeta',yield:'Rendimiento'};
   const txIcons = {expense:'↗',income:'↙',transfer:'⇄',payment:'✓',yield:'✧'};
+  const categoryIcons={Comida:'🍽',Supermercado:'🛒',Transporte:'🚇',Vivienda:'⌂',Servicios:'⚡',Entretenimiento:'◈',Salud:'✚',Compras:'🛍',Suscripciones:'↻',Educación:'▤',Otros:'○'};
+  const bankThemes={inbursa:{color:'#2775ac',label:'INBURSA'},'mercado pago':{color:'#00a6ec',label:'MP'},nu:{color:'#8233ad',label:'nu'},nub:{color:'#8233ad',label:'nu'},bbva:{color:'#115b9e',label:'BBVA'},revolut:{color:'#171a20',label:'R'},bdesa:{color:'#12675b',label:'BDESA'}};
   const cats = ['Comida','Supermercado','Transporte','Vivienda','Servicios','Entretenimiento','Salud','Compras','Suscripciones','Educación','Otros'];
   const main = document.getElementById('main');
   const modal = document.getElementById('modal');
   const modalInner = document.getElementById('modal-inner');
   const toastNode = document.getElementById('toast');
   let db;
-  let state = {accounts:[],movements:[],settings:{salary:0,savingsTarget:0}};
+  let state = {accounts:[],movements:[],budgets:[],settings:{salary:0,savingsTarget:0}};
+  let drive;
   let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null;
 
   function localDate(offset=0){const d=new Date(); d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -26,31 +31,41 @@
   function monthName(m){const [y,mo]=m.split('-').map(Number);return new Intl.DateTimeFormat('es-MX',{month:'long',year:'numeric'}).format(new Date(y,mo-1,1));}
   function shortDate(s){const [y,m,d]=s.split('-');return `${d}/${m}/${y}`;}
   function getAccount(aid){return F.accountById(state.accounts,aid);}
+  function badgeFor(a){const t=bankThemes[String(a.institution||'').toLowerCase().trim()]||{color:'#395e79',label:(a.institution||a.name||'CT').slice(0,2).toUpperCase()};return t;}
+  function cloudStatus(){return drive?.status||'Sin configurar';}
+  function snapshot(){return {schemaVersion:2,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,settings:state.settings};}
+  function afterChange(){drive?.markChanged();}
   function sortTx(list){return [...list].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));}
   function notify(msg){toastNode.textContent=msg;toastNode.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toastNode.classList.remove('show'),3500);}
   function request(store,method,arg){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store)[method](arg);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
   function mutate(store,kind,entry){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);const target=tx.objectStore(store);if(kind==='put')target.put(entry);else if(kind==='delete')target.delete(entry);});}
-  function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;for(const s of ['accounts','movements','settings'])if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-  async function reload(){const [accounts,movements,settings]=await Promise.all([request('accounts','getAll'),request('movements','getAll'),request('settings','get','preferences')]);state={accounts,movements,settings:settings||{id:'preferences',salary:0,savingsTarget:0}};render();}
-  async function save(store,entry){await mutate(store,'put',entry);await reload();}
-  async function remove(store,identifier){await mutate(store,'delete',identifier);await reload();}
+  function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;for(const s of ['accounts','movements','settings','budgets'])if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+  async function reload(){const [accounts,movements,budgets,settings]=await Promise.all([request('accounts','getAll'),request('movements','getAll'),request('budgets','getAll'),request('settings','get','preferences')]);state={accounts,movements,budgets,settings:settings||{id:'preferences',salary:0,savingsTarget:0}};render();}
+  async function save(store,entry){await mutate(store,'put',entry);await reload();afterChange();}
+  async function remove(store,identifier){await mutate(store,'delete',identifier);await reload();afterChange();}
   function header(title,detail=''){return `<div class="page-head"><div><div class="eyebrow">${esc(detail||'Tu centro financiero')}</div><h1>${esc(title)}</h1></div><input id="month-control" aria-label="Mes del reporte" type="month" class="month-control" value="${esc(selectedMonth)}"></div>`;}
   function sectionTitle(t,action='',label=''){return `<div class="section-title"><h2>${esc(t)}</h2>${action?`<button class="text-btn" data-action="${esc(action)}">${esc(label||'Ver más')}</button>`:''}</div>`;}
   function blank(message,button=''){return `<div class="empty"><span class="symbol">◈</span>${esc(message)}${button?`<div style="margin-top:14px"><button class="secondary small" data-action="${esc(button)}">${button==='add-account'?'Agregar mi primera cuenta':'Registrar movimiento'}</button></div>`:''}</div>`;}
+  function cardTile(a){
+    const theme=badgeFor(a),credit=a.type==='credit';
+    return `<div class="bank-card" style="--bank:${esc(theme.color)}"><div class="bank-card-top"><b>${esc(theme.label)}</b><span class="card-kind">${credit?'CRÉDITO':a.type==='debit'?'DÉBITO':a.type==='pocket'?'CAJITA':a.type==='saving'?'AHORRO':'EFECTIVO'}</span></div><div class="card-chip">▦</div><div class="bank-card-bottom"><span>${esc(a.name)}</span><span>${credit?'▰':'◉'}</span></div></div>`;
+  }
   function accountList(accs,clickable=true){return accs.length?accs.map(a=>{
-    const balance=F.accountBalance(a,state.movements),credit=a.type==='credit';
-    return `<div class="account-row"><div class="account-icon ${esc(a.type)}">${typeIcons[a.type]||'▤'}</div><div class="row-body"><div class="row-title">${esc(a.name)}</div><div class="row-sub">${esc(a.institution||accountTypes[a.type])} · ${esc(accountTypes[a.type])}</div></div><div class="row-amount ${credit?'negative':''}">${money(balance)}<small>${credit?'Deuda estimada':'Saldo estimado'}</small></div>${clickable?`<button class="iconbtn" data-action="account-detail" data-id="${esc(a.id)}" aria-label="Detalle de cuenta" style="width:31px;height:31px;font-size:16px">›</button>`:''}</div>`;
+    const balance=F.accountBalance(a,state.movements),credit=a.type==='credit',theme=badgeFor(a);
+    const missing=credit&&(a.cutDay===0||a.creditLimit===0);
+    return `<div class="account-row"><div class="account-icon brand-icon" style="--bank:${esc(theme.color)}">${esc(theme.label.slice(0,3))}</div><div class="row-body"><div class="row-title">${esc(a.name)} <span class="mini-type">${credit?'Crédito':a.type==='debit'?'Débito':accountTypes[a.type]}</span></div><div class="row-sub">${esc(a.institution||accountTypes[a.type])}${missing?' · <span class="warning-text">Configuración pendiente</span>':''}</div></div><div class="row-amount ${credit?'negative':''}">${money(balance)}<small>${credit?'Deuda estimada':'Saldo estimado'}</small></div>${clickable?`<button class="iconbtn" data-action="account-detail" data-id="${esc(a.id)}" aria-label="Detalle de cuenta">›</button>`:''}</div>`;
   }).join(''):blank('Todavía no hay cuentas registradas.','add-account');}
   function monthlyTx(){return sortTx(state.movements.filter(m=>m.type==='expense'?F.monthlyPurchaseMonth(m,getAccount(m.accountId))===selectedMonth:F.monthOf(m.date)===selectedMonth));}
   function txList(items,removeButtons=false){return items.length?items.map(m=>{
-    const origin=getAccount(m.accountId), dest=getAccount(m.toAccountId);
+    const origin=getAccount(m.accountId),dest=getAccount(m.toAccountId);
     const name=m.description||(m.type==='expense'?m.category:txNames[m.type]);
-    let sub=`${shortDate(m.date)} · ${esc(origin?.name||'Cuenta eliminada')}`;
+    let sub=`${shortDate(m.date)} · ${esc(origin?.name||'Cuenta eliminada')} · ${esc(txNames[m.type])}`;
     if(dest)sub+=` → ${esc(dest.name)}`;
     if(m.type==='expense'&&origin?.type==='credit')sub+=` · Corte ${esc(monthName(F.statementOf(m.date,origin.cutDay)))}`;
     if(m.type==='expense'&&Number(m.months)>1)sub+=` · ${m.months} MSI`;
     const cls=m.type==='income'||m.type==='yield'?'positive':m.type==='expense'?'negative':'';
-    return `<div class="tx-row"><div class="tx-icon">${txIcons[m.type]||'⇄'}</div><div class="row-body"><div class="row-title">${esc(name)}</div><div class="row-sub">${sub}</div></div><div class="row-amount ${cls}">${m.type==='income'||m.type==='yield'?'+':m.type==='expense'?'-':''}${money(m.amount)}<small>${esc(txNames[m.type])}</small></div>${removeButtons?`<button class="iconbtn" data-action="remove-tx" data-id="${esc(m.id)}" title="Eliminar movimiento" aria-label="Eliminar movimiento" style="width:29px;height:29px;font-size:15px">×</button>`:''}</div>`;
+    const sym=m.type==='expense'?(categoryIcons[m.category]||'🛍'):(txIcons[m.type]||'⇄');
+    return `<div class="tx-row"><div class="tx-icon tx-${esc(m.type)}" aria-hidden="true">${sym}</div><div class="row-body"><div class="row-title">${esc(name)}</div><div class="row-sub">${sub}</div></div><div class="row-amount ${cls}">${m.type==='income'||m.type==='yield'?'+':m.type==='expense'?'-':''}${money(m.amount)}<small>${esc(txNames[m.type])}</small></div>${removeButtons?`<button class="iconbtn" data-action="remove-tx" data-id="${esc(m.id)}" title="Eliminar movimiento" aria-label="Eliminar movimiento">×</button>`:''}</div>`;
   }).join(''):blank('No hay movimientos para este periodo.','add-movement');}
   function renderHome(){
     const t=F.totals(state.accounts,state.movements),b=F.breakdown(state.accounts,state.movements,selectedMonth),tx=monthlyTx();
@@ -63,14 +78,15 @@
   }
   function renderAccounts(){
     const assets=state.accounts.filter(a=>a.type!=='credit'),cards=state.accounts.filter(a=>a.type==='credit');
-    main.innerHTML=header('Bancos y tarjetas','Todas tus cuentas')+`<div class="toolbar"><button class="primary small" data-action="add-account">＋ Agregar cuenta o tarjeta</button></div>
+    main.innerHTML=header('Bancos y tarjetas','Todas tus cuentas')+`<div class="toolbar"><button class="primary small" data-action="add-account">＋ Agregar cuenta o tarjeta</button><button class="secondary small" data-action="import-accounts">⇧ Importar cuentas CSV</button></div>
+      ${sectionTitle('Tus tarjetas visuales')}<div class="card-gallery">${state.accounts.filter(a=>['debit','credit'].includes(a.type)).map(a=>`<button class="card-button" data-action="account-detail" data-id="${esc(a.id)}">${cardTile(a)}</button>`).join('')||blank('Agrega tarjetas o importa tu CSV para mostrarlas aquí.')}</div>
       ${sectionTitle('Dinero, efectivo y cajitas')}<div class="panel">${accountList(assets)}</div>
       ${sectionTitle('Tarjetas de crédito')}<div class="panel">${cards.length?accountList(cards):blank('Agrega tus tarjetas para controlar cortes, saldos y MSI.')}</div>
       <p class="footnote">Cada cuenta parte de un saldo inicial al cierre de la fecha que elijas. Solo se aplican a ese saldo los movimientos posteriores; los anteriores pueden servir para el historial sin duplicar dinero.</p>`;
   }
   function renderMovements(){
     const tx=monthlyTx().filter(m=>filter==='all'||m.type===filter);
-    main.innerHTML=header('Tus movimientos','Historial por mes financiero')+`<div class="pills">${[['all','Todos'],['expense','Gastos'],['income','Ingresos'],['payment','Pagos'],['transfer','Transferencias'],['yield','Rendimientos']].map(([v,label])=>`<button class="pill ${filter===v?'sel':''}" data-action="filter" data-filter="${v}">${label}</button>`).join('')}</div><div class="panel">${txList(tx,true)}</div><p class="footnote">Las compras de crédito se agrupan por el mes de corte. Transferencias, pagos y movimientos de débito se muestran por su fecha real.</p>`;
+    main.innerHTML=header('Tus movimientos','Historial por mes financiero')+`<div class="toolbar"><button class="secondary small" data-action="import-movements">⇧ Importar movimientos CSV</button></div><div class="pills">${[['all','Todos'],['expense','Gastos'],['income','Ingresos'],['payment','Pagos'],['transfer','Transferencias'],['yield','Rendimientos']].map(([v,label])=>`<button class="pill ${filter===v?'sel':''}" data-action="filter" data-filter="${v}">${label}</button>`).join('')}</div><div class="panel">${txList(tx,true)}</div><p class="footnote">Las compras de crédito se agrupan por el mes de corte. Transferencias, pagos y movimientos de débito se muestran por su fecha real.</p>`;
   }
   function renderReports(){
     const b=F.breakdown(state.accounts,state.movements,selectedMonth),catsList=Object.entries(b.byCat).sort((a,c)=>c[1]-a[1]);
@@ -78,31 +94,34 @@
     const stmt=cards.map(a=>({a,s:F.statementCharges(a,state.movements,selectedMonth)}));
     const future=Array.from({length:6},(_,i)=>{const month=F.shiftMonth(selectedMonth,i+1);return {month,value:F.monthlyInstallments(state.accounts,state.movements,month)};});
     main.innerHTML=header('Informe mensual','Análisis detallado')+`<div class="two-col"><div class="stat"><div class="k">Ingreso efectivamente recibido</div><div class="v positive">${money(b.income)}</div></div><div class="stat"><div class="k">Compras atribuibles al mes</div><div class="v negative">${money(b.purchases)}</div></div><div class="stat"><div class="k">Salidas bancarias de efectivo</div><div class="v">${money(b.bankOutflow)}</div><div class="hint">Compras débito + pagos de tarjeta</div></div><div class="stat"><div class="k">Rendimientos registrados</div><div class="v sky">${money(b.yields)}</div></div></div>
+    ${renderDonut(b)}
     ${sectionTitle('¿En qué gastaste?')}<div class="panel">${catsList.length?catsList.map(([name,amount])=>`<div class="baritem"><div class="baritem-row"><span>${esc(name)}</span><b>${money(amount)}</b></div><div class="progress"><div style="width:${b.purchases?Math.min(100,100*amount/b.purchases):0}%"></div></div></div>`).join(''):blank('Todavía no hay gastos registrados en este mes.')}</div>
     ${sectionTitle('Cargos por tarjeta en el corte')}<div class="panel">${stmt.length?stmt.map(({a,s})=>`<div class="report-line"><span><b>${esc(a.name)}</b><br><span class="help">${esc('Corte día '+a.cutDay)} · Ordinarios ${money(s.ordinary)} · MSI ${money(s.installments)}</span></span><b>${money(s.total)}</b></div>`).join(''):blank('Aún no has agregado tarjetas de crédito.')}</div>
+    ${cards.some(a=>!a.cutDay)?`<div class="inline-note">Hay tarjetas sin día de corte configurado. Sus cargos del estado de cuenta no se proyectan hasta que lo registres; las compras se muestran temporalmente por mes calendario.</div>`:''}
     <p class="footnote">Los cargos del corte son una proyección a partir de tus compras registradas. No sustituyen el estado de cuenta oficial: no incluyen automáticamente saldo previo, comisiones, ajustes, devoluciones ni intereses.</p>
     ${sectionTitle('MSI comprometidos: próximos 6 meses')}<div class="panel">${future.map(x=>`<div class="report-line"><span>${esc(monthName(x.month))}</span><b>${money(x.value)}</b></div>`).join('')}</div>
     ${sectionTitle('Flujo de efectivo del calendario')}<div class="panel"><div class="report-line"><span>Ingresos y rendimientos recibidos</span><b class="positive">${money(b.income+b.yields)}</b></div><div class="report-line"><span>Compras de débito / efectivo</span><b>${money(b.bankOutflow-b.cardPayments)}</b></div><div class="report-line"><span>Pagos a tarjetas</span><b>${money(b.cardPayments)}</b></div><div class="report-line"><span><b>Flujo neto registrado</b></span><b class="${b.cashChange>=0?'positive':'negative'}">${money(b.cashChange)}</b></div></div>
+    ${renderBudgetSummary()}
     <div class="toolbar"><button class="primary small" data-action="export-report">Exportar informe JSON</button><button class="secondary small" data-action="export-csv">Exportar CSV</button></div>
     <div class="inline-note">El gasto de una compra a MSI se registra íntegro en el mes financiero de la compra; los cargos a pagar se distribuyen en los meses de corte futuros. Por eso "compras" y "cargos de tarjetas" son indicadores distintos.</div>`;
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='movements')renderMovements();else renderReports();}
+    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else renderReports();}
   function navigate(p){page=p;filter='all';render();window.scrollTo(0,0);}
   function openModal(title,body){modalInner.innerHTML=`<div class="modal-body"><div class="modal-head"><h2>${esc(title)}</h2><button class="close" data-action="close" aria-label="Cerrar">×</button></div>${body}</div>`;if(!modal.open)modal.showModal();}
   function closeModal(){if(modal.open)modal.close();}
   const option=(v,label,selected)=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(label)}</option>`;
   function field(label,name,type='text',value='',hint='',extra=''){return `<div class="field"><label for="f-${esc(name)}">${esc(label)}</label><input id="f-${esc(name)}" name="${esc(name)}" type="${esc(type)}" value="${esc(value)}" ${extra}>${hint?`<small>${esc(hint)}</small>`:''}</div>`;}
   function accountForm(existing=null){
-    const a=existing||{name:'',institution:'',type:'debit',balanceDate:localDate(-1),initialBalance:0,initialDebt:0,creditLimit:0,cutDay:20,dueDay:10};
+    const a=existing||{name:'',institution:'',type:'debit',balanceDate:localDate(-1),initialBalance:0,initialDebt:0,creditLimit:0,cutDay:0,dueDay:0};
     openModal(existing?'Editar cuenta':'Nueva cuenta o tarjeta',`<form id="account-form" class="form">
       ${field('Nombre visible','name','text',a.name,'Ejemplo: Mercado Pago, BBVA Nómina, Nu Cajita','required maxlength="70"')}
       ${field('Institución (opcional)','institution','text',a.institution,'No introduzcas números de tarjeta o cuenta.','maxlength="70"')}
       <div class="field"><label for="f-type">Tipo de cuenta</label><select name="type" id="f-type" ${existing?'disabled':''}>${Object.entries(accountTypes).map(([v,l])=>option(v,l,a.type)).join('')}</select></div>
       <div id="asset-fields">${field('Saldo al cierre de la fecha base ($)','initialBalance','number',val(a.initialBalance),'Los movimientos anteriores a esta fecha serán solo históricos.','step="0.01" required')}</div>
       <div id="credit-fields">${field('Deuda inicial al cierre de la fecha base ($)','initialDebt','number',val(a.initialDebt),'Incluye compras existentes antes de registrar movimientos.','min="0" step="0.01"')}
-        <div class="form-row">${field('Límite de crédito ($)','creditLimit','number',val(a.creditLimit),'','min="0" step="0.01"')}${field('Día de corte','cutDay','number',a.cutDay,'','min="1" max="31"')}</div>
-        ${field('Día habitual de pago (informativo)','dueDay','number',a.dueDay,'Confirma en el banco el vencimiento exacto de cada corte.','min="1" max="31"')}</div>
+        <div class="form-row">${field('Límite de crédito ($)','creditLimit','number',val(a.creditLimit),'','min="0" step="0.01"')}${field('Día de corte','cutDay','number',a.cutDay||'','Si aún no lo conoces, déjalo vacío.','min="1" max="31"')}</div>
+        ${field('Día habitual de pago (informativo)','dueDay','number',a.dueDay||'','Confirma en el banco el vencimiento exacto de cada corte.','min="1" max="31"')}</div>
       ${field('Fecha de saldo inicial (al cierre del día)','balanceDate','date',a.balanceDate,'Por defecto ayer: así los movimientos de hoy sí actualizan el saldo.','required')}
       <div class="inline-note">No registres números completos de tarjetas, contraseñas, NIP ni CVV. Los saldos se calculan desde esta fecha base.</div>
       <div class="modal-footer"><button type="button" class="secondary" data-action="close">Cancelar</button><button class="primary" type="submit">${existing?'Guardar cambios':'Agregar cuenta'}</button></div>
@@ -115,10 +134,10 @@
       const type=existing?.type||f.elements.type.value,base=f.elements.balanceDate.value;
       if(!base)throw Error('Selecciona la fecha del saldo inicial.');
       const aNew={id:existing?.id||id(),name:f.elements.name.value.trim(),institution:f.elements.institution.value.trim(),type,balanceDate:base,
-        initialBalance:cents(f.elements.initialBalance.value),initialDebt:cents(f.elements.initialDebt.value),creditLimit:cents(f.elements.creditLimit.value),cutDay:Number(f.elements.cutDay.value),dueDay:Number(f.elements.dueDay.value),createdAt:existing?.createdAt||new Date().toISOString()};
+        initialBalance:cents(f.elements.initialBalance.value),initialDebt:cents(f.elements.initialDebt.value),creditLimit:cents(f.elements.creditLimit.value),cutDay:Number(f.elements.cutDay.value||0),dueDay:Number(f.elements.dueDay.value||0),createdAt:existing?.createdAt||new Date().toISOString()};
       if(!aNew.name)throw Error('Escribe el nombre de la cuenta.');
       if([aNew.initialBalance,aNew.initialDebt,aNew.creditLimit].some(x=>!Number.isSafeInteger(x)))throw Error('Ingresa montos válidos.');
-      if(type==='credit'&&(!Number.isInteger(aNew.cutDay)||aNew.cutDay<1||aNew.cutDay>31||!Number.isInteger(aNew.dueDay)||aNew.dueDay<1||aNew.dueDay>31))throw Error('El día de corte y pago debe ser del 1 al 31.');
+      if(type==='credit'&&(!Number.isInteger(aNew.cutDay)||aNew.cutDay<0||aNew.cutDay>31||!Number.isInteger(aNew.dueDay)||aNew.dueDay<0||aNew.dueDay>31))throw Error('El día de corte y pago debe ser del 1 al 31, o vacío si está pendiente.');
       await save('accounts',aNew);closeModal();notify('Cuenta guardada');
     }catch(err){notify(err.message||'No se pudo guardar');}});
     if(existing)document.getElementById('delete-account-btn').addEventListener('click',async()=>{
@@ -177,20 +196,52 @@
     const balance=F.accountBalance(a,state.movements),tx=sortTx(state.movements.filter(m=>m.accountId===aid||m.toAccountId===aid)).slice(0,12);
     const card=a.type==='credit';const breakdown=card?F.statementCharges(a,state.movements,selectedMonth):null;
     openModal(a.name,`<div class="panel"><div class="eyebrow">${card?'Deuda estimada':'Saldo disponible estimado'}</div><div class="summary-figure">${money(balance)}</div><div class="help">Saldo base al cierre del ${shortDate(a.balanceDate)}: ${money(card?a.initialDebt:a.initialBalance)}</div>
-      ${card?`<div class="divider"></div><div class="report-line"><span>Límite de crédito</span><b>${money(a.creditLimit)}</b></div><div class="report-line"><span>Disponible aproximado</span><b>${money(a.creditLimit-balance)}</b></div><div class="report-line"><span>Día de corte</span><b>${esc(a.cutDay)}</b></div><div class="report-line"><span>Día habitual de pago</span><b>${esc(a.dueDay)}</b></div><div class="report-line"><span>Cargos estimados del corte de ${esc(monthName(selectedMonth))}</span><b>${money(breakdown.total)}</b></div>`:''}</div>
+      ${card?`<div class="divider"></div><div class="report-line"><span>Límite de crédito</span><b>${money(a.creditLimit)}</b></div><div class="report-line"><span>Disponible aproximado</span><b>${a.creditLimit?money(a.creditLimit-balance):'Por configurar'}</b></div><div class="report-line"><span>Día de corte</span><b>${a.cutDay?esc(a.cutDay):'Por configurar'}</b></div><div class="report-line"><span>Día habitual de pago</span><b>${a.dueDay?esc(a.dueDay):'Por configurar'}</b></div><div class="report-line"><span>Cargos estimados del corte de ${esc(monthName(selectedMonth))}</span><b>${money(breakdown.total)}</b></div>`:''}</div>
       ${sectionTitle('Movimientos relacionados')}<div class="panel">${txList(tx)}</div><div class="toolbar"><button class="secondary small" id="edit-account-btn">Editar cuenta</button></div>
       <p class="footnote">Las compras anteriores a la fecha base aparecen en el historial, pero no modifican el saldo actual.</p>`);
     document.getElementById('edit-account-btn').addEventListener('click',()=>accountForm(a));
   }
+  function budgetSpend(b){return state.movements.filter(m=>m.type==='expense'&&m.category===b.category&&(b.accountId==='all'||m.accountId===b.accountId)&&F.monthlyPurchaseMonth(m,getAccount(m.accountId))===selectedMonth).reduce((sum,m)=>sum+m.amount,0);}
+  function renderBudgetSummary(){const rows=state.budgets.map(b=>({...b,spent:budgetSpend(b)}));return `${sectionTitle('Tus límites mensuales','goto-budgets','Administrar')}<div class="panel">${rows.length?rows.slice(0,5).map(b=>`<div class="baritem"><div class="baritem-row"><span>${esc(categoryIcons[b.category]||'◈')} ${esc(b.category)} · ${esc(b.accountId==='all'?'Todas':getAccount(b.accountId)?.name||'Cuenta')}</span><b class="${b.spent>b.limit?'negative':''}">${money(b.spent)} / ${money(b.limit)}</b></div><div class="progress"><div class="${b.spent>b.limit?'over-budget':''}" style="width:${Math.min(100,100*b.spent/b.limit)}%"></div></div></div>`).join(''):blank('Configura límites para cada categoría, tarjeta o cuenta.')}</div>`;}
+  function renderBudgets(){main.innerHTML=header('Presupuestos','Límites por tarjeta y categoría')+`<div class="toolbar"><button class="primary small" data-action="add-budget">＋ Agregar límite</button></div>${renderBudgetSummary()}${sectionTitle('Administrar límites')}<div class="panel">${state.budgets.length?state.budgets.map(b=>`<div class="report-line"><span>${esc(b.category)} · ${esc(b.accountId==='all'?'Todas las cuentas':getAccount(b.accountId)?.name||'Cuenta eliminada')}<br><span class="help">${money(b.limit)} por mes · Consumido ${money(budgetSpend(b))}</span></span><button class="iconbtn" data-action="remove-budget" data-id="${esc(b.id)}" aria-label="Eliminar límite">×</button></div>`).join(''):blank('Aún no hay límites para administrar.')}</div><p class="footnote">Los límites se aplican al mes financiero: las compras de crédito van al corte correspondiente, mientras las de débito se asignan al mes calendario. Los límites no afectan tus saldos.</p>`;}
+  function budgetForm(){openModal('Nuevo límite mensual',`<form id="budget-form" class="form"><div class="field"><label for="b-account">Cuenta / tarjeta</label><select id="b-account" name="accountId">${option('all','Todas las cuentas','all')}${state.accounts.map(a=>option(a.id,a.name,'')).join('')}</select></div><div class="field"><label for="b-cat">Categoría</label><select id="b-cat" name="category">${cats.map(c=>option(c,c,'Comida')).join('')}</select></div>${field('Límite mensual ($)','limit','number','','','min="0.01" required step="0.01"')}<div class="modal-footer"><button type="button" class="secondary" data-action="close">Cancelar</button><button class="primary" type="submit">Guardar</button></div></form>`);
+    document.getElementById('budget-form').addEventListener('submit',async e=>{e.preventDefault();try{const f=e.target;const limit=cents(f.elements.limit.value);if(!Number.isSafeInteger(limit)||limit<=0)throw Error('El límite debe ser positivo.');const accountId=f.elements.accountId.value,category=f.elements.category.value;const found=state.budgets.find(b=>b.accountId===accountId&&b.category===category);await save('budgets',{id:found?.id||id(),accountId,category,limit});closeModal();notify('Límite guardado');}catch(err){notify(err.message);}});
+  }
+  function renderDonut(b){const entries=Object.entries(b.byCat).filter(x=>x[1]>0).sort((a,c)=>c[1]-a[1]);if(!entries.length)return '';
+    const colors=['#69b5fa','#52dec0','#ffc977','#b48dfa','#fb8d99','#78d9f4','#e2b676','#3fcf9e','#a1bddf','#bd9ba9'];let current=0;
+    const stops=entries.map((e,i)=>{const start=current;current+=e[1]/b.purchases*100;return `${colors[i%colors.length]} ${start.toFixed(2)}% ${current.toFixed(2)}%`;});
+    return `${sectionTitle('Distribución visual')}<div class="panel chart-panel"><div class="donut" style="background:conic-gradient(${stops.join(',')})"><div class="donut-center"><small>Compras</small><b>${money(b.purchases)}</b></div></div><div class="donut-legend">${entries.map((e,i)=>`<div><span class="legend-dot" style="background:${colors[i%colors.length]}"></span><span>${esc(categoryIcons[e[0]]||'◈')} ${esc(e[0])}</span><b>${(100*e[1]/b.purchases).toFixed(1)}%</b></div>`).join('')}</div></div>`;
+  }
+  async function importCsv(file,kind){if(!file)return;if(file.size>5*1024*1024){notify('CSV demasiado grande (máximo 5 MB).');return;}
+    try{
+      const text=await file.text();const parsed=kind==='accounts'?CSV.accounts(text,state.accounts,localDate(-1)):CSV.movements(text,state.accounts,state.movements);
+      if(!parsed.items.length){notify(`No hay nuevos registros. ${parsed.skipped} duplicados omitidos.`);return;}
+      const label=kind==='accounts'?'cuentas':'movimientos';if(!confirm(`Archivo: ${esc(file.name)}\nSe importarán ${parsed.items.length} ${label}; se omitirán ${parsed.skipped} repetidos.\nNo se eliminará información existente. ¿Continuar?`))return;
+      await new Promise((resolve,reject)=>{const tx=db.transaction(kind,'readwrite');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));tx.onerror=()=>reject(tx.error);for(const record of parsed.items)tx.objectStore(kind).put(record);});
+      await reload();afterChange();notify(`Importados ${parsed.items.length} ${label}.`);
+    }catch(err){notify(err.message||'No se pudo importar el CSV');}
+  }
+  async function startDrive(clientId,passphrase){try{
+    const result=await drive.connect(clientId,passphrase);
+    if(result.status==='conflict'){
+      const restore=confirm(`Drive tiene un respaldo del ${new Date(result.updatedAt).toLocaleString('es-MX')} diferente a los datos del celular.\nACEPTAR: recuperar el respaldo de Drive y REEMPLAZAR los datos locales.\nCANCELAR: conservar datos locales y dejar la sincronización pausada.`);
+      if(restore){if(confirm('Se reemplazarán los datos locales. Recomendamos exportar un respaldo JSON primero. ¿Confirmas la restauración?')){await drive.acceptCloud(result.remote);notify('Datos recuperados de Google Drive');}}else{
+        const push=confirm('Se conservarán tus datos locales. ¿Quieres reemplazar el respaldo de Drive con estos datos locales? ESTA ACCIÓN NO SE PUEDE DESHACER.');
+        if(push){await drive.useLocal();notify('Respaldo de Drive reemplazado');}
+      }
+    }else notify(result.status==='created'?'Respaldo cifrado creado en Drive':'Drive conectado. Datos sincronizados.');
+    const node=document.getElementById('drive-status');if(node)node.textContent=cloudStatus();
+  }catch(err){notify(err.message||'Falló la conexión con Drive');}}
   function settingsModal(){
     openModal('Configuración y respaldos',`<form id="settings-form" class="form">
       ${field('Ingreso mensual previsto ($)','salary','number',val(state.settings.salary||0),'Úsalo como referencia: los ingresos reales se registran como movimientos.','min="0" step="0.01"')}
       ${field('Meta de ahorro mensual ($)','savingsTarget','number',val(state.settings.savingsTarget||0),'Esta cifra es una meta, no un saldo de cuenta.','min="0" step="0.01"')}
       <button type="submit" class="primary full">Guardar preferencias</button></form>
       <div class="divider"></div><div class="section-title"><h2>Seguridad y archivos</h2></div>
-      <div class="stack"><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
+      <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
-      <div class="divider"></div><div class="help">Versión inicial 0.1 · MXN · Uso personal · Sin sincronización automática</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
+    document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
       if(!Number.isSafeInteger(salary)||salary<0||!Number.isSafeInteger(savingsTarget)||savingsTarget<0)throw Error('Ingresa cifras válidas.');
@@ -198,18 +249,18 @@
     }catch(err){notify(err.message);}});
   }
   function downloadFile(name,contents,mime){const file=new Blob([contents],{type:mime});const href=URL.createObjectURL(file);const a=document.createElement('a');a.href=href;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(href),5000);}
-  function exportBackup(){const payload={schemaVersion:1,kind:'complete-backup',exportedAt:new Date().toISOString(),currency:'MXN',accounts:state.accounts,movements:state.movements,settings:state.settings};downloadFile(`mis-finanzas-respaldo-${localDate()}.json`,JSON.stringify(payload,null,2),'application/json');notify('Respaldo exportado. Guárdalo en un lugar privado.');}
-  function exportReport(){const payload=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth);downloadFile(`mi-informe-${selectedMonth}.json`,JSON.stringify(payload,null,2),'application/json');notify('Informe mensual exportado');}
+  function exportBackup(){const payload={...snapshot(),exportedAt:new Date().toISOString()};downloadFile(`mis-finanzas-respaldo-${localDate()}.json`,JSON.stringify(payload,null,2),'application/json');notify('Respaldo exportado. Guárdalo en un lugar privado.');}
+  function exportReport(){const payload={...F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth),budgets:state.budgets.map(b=>({...b,accountName:b.accountId==='all'?'Todas las cuentas':getAccount(b.accountId)?.name||'',spent:budgetSpend(b)}))};downloadFile(`mi-informe-${selectedMonth}.json`,JSON.stringify(payload,null,2),'application/json');notify('Informe mensual exportado');}
   function exportCsv(){const r=F.reportForMonth(state.accounts,state.movements,state.settings,selectedMonth);const rows=[['fecha','mes_financiero','tipo','cuenta_origen','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI']];
     for(const m of r.movements)rows.push([m.date,m.financialMonth,m.type,getAccount(m.accountId)?.name||'',getAccount(m.toAccountId)?.name||'',m.category||'',m.description||'',val(m.amount),m.months||1]);
     const csv='\ufeff'+rows.map(row=>row.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadFile(`mis-movimientos-${selectedMonth}.csv`,csv,'text/csv;charset=utf-8');notify('CSV exportado');}
   function validatedBackup(x){
-    if(!x||x.kind!=='complete-backup'||x.schemaVersion!==1||!Array.isArray(x.accounts)||!Array.isArray(x.movements)||!x.settings||x.accounts.length>1000||x.movements.length>100000)throw Error('El archivo no es un respaldo compatible.');
+    if(!x||x.kind!=='complete-backup'||![1,2].includes(x.schemaVersion)||!Array.isArray(x.accounts)||!Array.isArray(x.movements)||!x.settings||x.accounts.length>1000||x.movements.length>100000)throw Error('El archivo no es un respaldo compatible.');
     const validId=s=>typeof s==='string'&&s.length>0&&s.length<=100;
     const validMoney=v=>Number.isSafeInteger(v)&&Math.abs(v)<=1e15;
     const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);
     const accounts=x.accounts.map(a=>{
-      if(!validId(a.id)||!Object.hasOwn(accountTypes,a.type)||typeof a.name!=='string'||a.name.length>90||!validDate(a.balanceDate)||!validMoney(a.initialBalance)||!validMoney(a.initialDebt)||!validMoney(a.creditLimit)||!Number.isInteger(a.cutDay)||a.cutDay<1||a.cutDay>31||!Number.isInteger(a.dueDay)||a.dueDay<1||a.dueDay>31)throw Error('El respaldo contiene una cuenta inválida.');
+      if(!validId(a.id)||!Object.hasOwn(accountTypes,a.type)||typeof a.name!=='string'||a.name.length>90||!validDate(a.balanceDate)||!validMoney(a.initialBalance)||!validMoney(a.initialDebt)||!validMoney(a.creditLimit)||!Number.isInteger(a.cutDay)||a.cutDay<0||a.cutDay>31||!Number.isInteger(a.dueDay)||a.dueDay<0||a.dueDay>31)throw Error('El respaldo contiene una cuenta inválida.');
       return {id:a.id,name:a.name,institution:String(a.institution||'').slice(0,90),type:a.type,balanceDate:a.balanceDate,initialBalance:a.initialBalance,initialDebt:a.initialDebt,creditLimit:a.creditLimit,cutDay:a.cutDay,dueDay:a.dueDay,createdAt:String(a.createdAt||'')};
     });
     const idMap=new Map(accounts.map(a=>[a.id,a]));if(idMap.size!==accounts.length)throw Error('Hay cuentas duplicadas.');
@@ -221,17 +272,20 @@
     if(new Set(movements.map(m=>m.id)).size!==movements.length)throw Error('Hay movimientos duplicados.');
     const salary=x.settings.salary||0,target=x.settings.savingsTarget||0;
     if(!validMoney(salary)||!validMoney(target)||salary<0||target<0)throw Error('Las preferencias son inválidas.');
-    return {accounts,movements,settings:{id:'preferences',salary,savingsTarget:target}};
+    const rawBudgets=Array.isArray(x.budgets)?x.budgets:[];
+    if(rawBudgets.length>2000)throw Error('Demasiados presupuestos.');
+    const budgets=rawBudgets.map(b=>{if(!validId(b.id)||!validMoney(b.limit)||b.limit<=0||!validId(b.category)||!(b.accountId==='all'||idMap.has(b.accountId)))throw Error('Presupuesto inválido.');return {id:b.id,category:b.category,accountId:b.accountId,limit:b.limit};});
+    return {accounts,movements,budgets,settings:{id:'preferences',salary,savingsTarget:target}};
   }
-  async function replaceBackup(x){return new Promise((resolve,reject)=>{const tx=db.transaction(['accounts','movements','settings'],'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));
-    for(const storeName of ['accounts','movements','settings'])tx.objectStore(storeName).clear();
-    x.accounts.forEach(a=>tx.objectStore('accounts').put(a));x.movements.forEach(m=>tx.objectStore('movements').put(m));tx.objectStore('settings').put(x.settings);
+  async function replaceBackup(x){return new Promise((resolve,reject)=>{const tx=db.transaction(['accounts','movements','settings','budgets'],'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Importación cancelada'));
+    for(const storeName of ['accounts','movements','settings','budgets'])tx.objectStore(storeName).clear();
+    x.accounts.forEach(a=>tx.objectStore('accounts').put(a));x.movements.forEach(m=>tx.objectStore('movements').put(m));(x.budgets||[]).forEach(b=>tx.objectStore('budgets').put(b));tx.objectStore('settings').put(x.settings);
   });}
   async function importBackupFile(file){if(!file)return;if(file.size>15*1024*1024){notify('Archivo demasiado grande (máximo 15 MB).');return;}
     try{const x=validatedBackup(JSON.parse(await file.text()));
       const ok=confirm(`Este respaldo tiene ${x.accounts.length} cuentas y ${x.movements.length} movimientos. RESTAURARLO REEMPLAZARÁ TODOS LOS DATOS ACTUALES en este navegador. Antes exporta un respaldo actual. ¿Continuar?`);
       if(!ok)return;
-      await replaceBackup(x);closeModal();await reload();notify('Respaldo restaurado correctamente');
+      await replaceBackup(x);closeModal();await reload();afterChange();notify('Respaldo restaurado correctamente');
     }catch(err){notify(err.message||'No se pudo importar el archivo');}
   }
   async function askPersist(){if(!navigator.storage?.persist){notify('Este navegador no ofrece la opción de persistencia.');return;}
@@ -244,20 +298,29 @@
       case 'add-account':accountForm();break;case 'add-movement':movementForm();break;
       case 'account-detail':accountDetail(target.dataset.id);break;
       case 'remove-tx':if(confirm('¿Eliminar este movimiento? Se recalcularán saldos y reportes.')){await remove('movements',target.dataset.id);notify('Movimiento eliminado');}break;
-      case 'goto-accounts':navigate('accounts');break;case 'goto-movements':navigate('movements');break;
+      case 'goto-accounts':navigate('accounts');break;case 'goto-movements':navigate('movements');break;case 'goto-budgets':navigate('budgets');break;
       case 'filter':filter=target.dataset.filter;render();break;
       case 'export-backup':exportBackup();break;case 'export-report':exportReport();break;case 'export-csv':exportCsv();break;
       case 'import-backup':document.getElementById('import-file').click();break;
+      case 'import-accounts':document.getElementById('import-accounts-file').click();break;
+      case 'import-movements':document.getElementById('import-movements-file').click();break;
+      case 'sample-accounts':downloadFile('plantilla-cuentas.csv',CSV.format([],['nombre','institucion','tipo','fecha_saldo','saldo_inicial','deuda_inicial','limite_credito','dia_corte','dia_pago']),'text/csv;charset=utf-8');break;
+      case 'sample-movements':downloadFile('plantilla-movimientos.csv',CSV.format([],['fecha','tipo','cuenta','cuenta_destino','categoria','descripcion','importe_MXN','meses_MSI','referencia']),'text/csv;charset=utf-8');break;
+      case 'add-budget':budgetForm();break;case 'remove-budget':if(confirm('¿Eliminar este límite?')){await remove('budgets',target.dataset.id);}break;
+      case 'drive-sync':if(!drive?.ready)notify('Conecta Google Drive desde Ajustes.');else {drive.dirty=true;await drive.sync();}break;
+      case 'drive-reconnect':settingsModal();notify('Escribe nuevamente la contraseña de cifrado para reconectar.');break;
       case 'request-persistence':await askPersist();break;
     }}catch(err){notify(err.message||'Ocurrió un error');}
   });
   document.getElementById('fab-add').addEventListener('click',movementForm);
   document.getElementById('btn-settings').addEventListener('click',settingsModal);
+  document.getElementById('import-accounts-file').addEventListener('change',async e=>{await importCsv(e.target.files?.[0],'accounts');e.target.value='';});
+  document.getElementById('import-movements-file').addEventListener('change',async e=>{await importCsv(e.target.files?.[0],'movements');e.target.value='';});
   document.getElementById('import-file').addEventListener('change',async e=>{await importBackupFile(e.target.files?.[0]);e.target.value='';});
   document.getElementById('modal').addEventListener('click',e=>{if(e.target===modal)closeModal();});
   main.addEventListener('change',e=>{if(e.target.id==='month-control'&&/^\d{4}-\d{2}$/.test(e.target.value)){selectedMonth=e.target.value;render();}});
   async function init(){
-    try{db=await openDb();await reload();if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+    try{db=await openDb();drive=new G.DriveSync({getData:snapshot,restore:async data=>{const x=validatedBackup(data);await replaceBackup(x);await reload();},onStatus:status=>{const node=document.getElementById('drive-status');if(node)node.textContent=status;const chip=document.getElementById('cloud-chip');if(chip)chip.textContent=status.startsWith('Sincronizado')?'☁ Guardado':status.startsWith('Desconectado')?'☁ Sin conectar':'☁ Pendiente';}});await reload();if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});}
     catch(err){main.innerHTML=`<div class="panel"><h2>No se pudo abrir el almacenamiento</h2><p>Activa el almacenamiento local del navegador e inténtalo de nuevo. No utilices el modo incógnito para guardar tus finanzas.</p><p class="help">${esc(err.message)}</p></div>`;document.getElementById('fab-add').disabled=true;}
   }
   init();

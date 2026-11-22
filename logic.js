@@ -73,7 +73,7 @@
     return {purchases, income, yields, bankOutflow, cardPayments, cashChange: income + yields - bankOutflow, byCat};
   }
   function statementCharges(card, movements, month) {
-    if (card.type !== 'credit') return {ordinary: 0, installments: 0, total: 0, entries: []};
+    if (card.type !== 'credit' || !Number.isInteger(card.cutDay) || card.cutDay < 1) return {ordinary: 0, installments: 0, total: 0, entries: []};
     let ordinary = 0, installments = 0;
     const entries = [];
     for (const mv of movements) {

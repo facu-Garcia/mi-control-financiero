@@ -8,3 +8,10 @@
 *.respaldo.json
 .DS_Store
 Thumbs.db
+
+# Archivos locales con información financiera real
+/private/
+/datos-privados/
+/mis-cuentas*.csv
+/mis-movimientos*.csv
+*.statement.json

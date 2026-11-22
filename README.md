@@ -1,3 +1,36 @@
+# Mi Control Financiero · PWA v0.2
+
+Aplicación personal instalable en Android, publicada como sitio estático en GitHub Pages. **El código es público; tus datos personales nunca se suben al repositorio.**
+
+## Principales funciones
+
+- Cuentas de débito, ahorro y cajitas; tarjetas de crédito con corte, fecha de pago, límite y MSI.
+- Compras atribuidas al mes financiero del corte; cálculos separados de deuda, efectivo y pagos.
+- Importación incremental de cuentas y movimientos en CSV, con validaciones y advertencia antes de guardar.
+- Tarjetas estilizadas por institución y categorías visuales; límites de presupuesto por tarjeta y categoría.
+- Gráfica de categorías, panel financiero, informes y exportación JSON/CSV.
+- IndexedDB offline-first, exportación JSON y opción de respaldo cifrado en Google Drive.
+
+## Tu configuración inicial
+
+Los bancos y tarjetas personales se importan mediante un archivo CSV **fuera de este repositorio**. En la app: **Cuentas → Importar cuentas CSV**. No hay saldos iniciales ni límites de crédito precargados. Tras importar, entra en cada tarjeta para definirlos.
+
+Los estados de cuenta en PDF no se procesan automáticamente. Convierte sus transacciones al CSV normalizado (puedes pedírmelo en ChatGPT) y utiliza **Movimientos → Importar movimientos CSV**. Descarga las plantillas en Ajustes.
+
+## Google Drive cifrado
+
+Consulta [docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md). Hay que habilitar Google Drive API y configurar un OAuth Client ID de aplicación web. La sincronización está disponible únicamente durante una sesión activa y autorizada, con conexión a Internet. La contraseña de cifrado no se almacena; **si se pierde, el respaldo es irrecuperable**. Drive no reemplaza los respaldos independientes.
+
+## Desarrollo
+
+Las pruebas se ejecutan con `node test-logic.cjs`, `node test-csv.cjs` y `node test-drive.cjs`. Revisa [CHANGELOG.md](CHANGELOG.md) y [docs/FLUJO_GITHUB.md](docs/FLUJO_GITHUB.md).
+
+## Publicación
+
+Sitio estático sin build: configura GitHub Pages desde **main** y **/(root)**. Al crear nuevas versiones, incrementa `VERSION` en `sw.js` para que el caché pueda actualizarse.
+
+---
+
 # Mi Control Financiero · PWA v0.1
 
 Primera versión de una aplicación personal, móvil y sin servidor para registrar bancos, tarjetas, cajitas, gastos e ingresos. Todo se guarda en la base local **IndexedDB** del navegador. GitHub Pages solo distribuye los archivos del código.

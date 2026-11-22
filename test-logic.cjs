@@ -20,6 +20,7 @@ const purchases=[{id:'a',type:'expense',date:'2026-10-21',accountId:'card',amoun
  {id:'f',type:'transfer',date:'2026-11-21',accountId:'bank',toAccountId:'pocket',amount:10000,months:1},
  {id:'g',type:'payment',date:'2026-11-21',accountId:'bank',toAccountId:'card',amount:30000,months:1},
  {id:'h',type:'yield',date:'2026-11-21',accountId:'pocket',amount:150,months:1}];
+assert.equal(F.statementCharges({...cr,cutDay:0},purchases,'2026-11').total,0);
 assert.equal(F.statementCharges(cr,purchases,'2026-11').total,112500);
 assert.equal(F.statementCharges(cr,purchases,'2026-11').ordinary,12500);
 assert.equal(F.statementCharges(cr,purchases,'2026-11').installments,100000);
