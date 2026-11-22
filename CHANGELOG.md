@@ -1,5 +1,19 @@
 # Historial de cambios
 
+## [0.3.2] - 2026-11-21
+
+### Visual
+- Mercado Pago: posición idéntica del chip y contacto NFC para las variantes de débito y crédito.
+- BBVA: «A» geométrica reconstruida mediante dos trazos CSS en vez de una letra tipográfica.
+- Nu: tonos de morado más saturados para crédito y débito, con muesca lateral CSS.
+- Revolut e Inbursa permanecen sin cambios.
+
+### Mantenimiento
+- Eliminar BDESA del catálogo, sus referencias CSS y nuevos CSV privados.
+- No eliminar automáticamente cuentas que puedan existir en IndexedDB/Drive para no perder información financiera.
+- Ampliar pruebas y actualizar la caché de GitHub Pages; no tocar cálculos, pagos ni sincronización.
+
+
 ## [0.3.1] - 2026-11-21
 
 ### Diseño

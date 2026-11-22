@@ -5,11 +5,10 @@
 <title>Catálogo de diseños — Mi Control Financiero</title>
 <link rel="stylesheet" href="./card-designs.css?v=0.3.1">
 <link rel="stylesheet" href="./cards/banks/inbursa.css?v=0.3.1">
-<link rel="stylesheet" href="./cards/banks/mercado-pago.css?v=0.3.1">
-<link rel="stylesheet" href="./cards/banks/nu.css?v=0.3.1">
-<link rel="stylesheet" href="./cards/banks/bbva.css?v=0.3.1">
+<link rel="stylesheet" href="./cards/banks/mercado-pago.css?v=0.3.2">
+<link rel="stylesheet" href="./cards/banks/nu.css?v=0.3.2">
+<link rel="stylesheet" href="./cards/banks/bbva.css?v=0.3.2">
 <link rel="stylesheet" href="./cards/banks/revolut.css?v=0.3.1">
-<link rel="stylesheet" href="./cards/banks/bdesa.css?v=0.3.1">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;background:#101b2a;color:#eaf3ff;font:14px/1.5 system-ui,Arial,sans-serif}
@@ -23,13 +22,13 @@ a{color:#7ed3fb}
 .note{max-width:850px;margin-top:32px;padding:14px;border:1px solid #38536c;background:#1b3047;border-radius:12px;font-size:13px;color:#c9dfef}
 .demo-item .finance-card{max-width:none}
 </style>
-<script src="./card-designs.js?v=0.3.1" defer></script>
+<script src="./card-designs.js?v=0.3.2" defer></script>
 </head>
 <body><main>
-<h1>Catálogo visual de tarjetas — v0.3.1</h1>
+<h1>Catálogo visual de tarjetas — v0.3.2</h1>
 <p class="lead">Muestras generadas 100% con HTML y CSS. No contienen datos bancarios ni fotos de tarjetas reales. <a href="./">Volver a la aplicación</a></p>
 <div class="demo" id="preview-grid"></div>
-<p class="note">Los diseños son recreaciones visuales basadas en ejemplos publicados y las capturas compartidas, no reproducciones oficiales exactas. El modelo BDESA queda provisional hasta que se confirme la institución. Para ajustar un banco solo se modifica su archivo en <code>cards/banks/</code>.</p>
+<p class="note">Los diseños son recreaciones visuales basadas en ejemplos publicados y las capturas compartidas, no reproducciones oficiales exactas. Para ajustar un banco solo se modifica su archivo en <code>cards/banks/</code>.</p>
 </main><script>
 window.addEventListener('DOMContentLoaded',()=>{
   const samples=[
@@ -40,7 +39,6 @@ window.addEventListener('DOMContentLoaded',()=>{
     {name:'Nu Crédito',institution:'Nu',type:'credit'},
     {name:'BBVA Débito',institution:'BBVA',type:'debit'},
     {name:'Revolut Débito',institution:'Revolut',type:'debit'},
-    {name:'BDESA Débito',institution:'BDESA',type:'debit'}
   ];
   const escaped=window.FinanceCards.esc;
   document.getElementById('preview-grid').innerHTML=samples.map(a=>

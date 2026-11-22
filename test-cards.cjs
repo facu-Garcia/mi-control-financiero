@@ -3,7 +3,7 @@ const Card=require('./card-designs.js');
 const CSV=require('./csv.js');
 const {prepare}=require('./card-images.js');
 (async()=>{
-  for(const [bank,key] of [['Inbursa','inbursa'],['Mercado Pago','mercado-pago'],['Nu','nu'],['BBVA','bbva'],['Revolut','revolut'],['BDESA','bdesa']]){
+  for(const [bank,key] of [['Inbursa','inbursa'],['Mercado Pago','mercado-pago'],['Nu','nu'],['BBVA','bbva'],['Revolut','revolut']]){
     assert.equal(Card.institution(bank),key);
   }
   assert.equal(Card.styleOf('INVALID'),'auto');
@@ -20,7 +20,7 @@ const {prepare}=require('./card-images.js');
   assert.match(Card.render({institution:'Mercado Pago',name:'Mi tarjeta',type:'debit'}),/fc-network--mc/);
   assert.match(Card.render({institution:'BBVA',name:'Mi cuenta',type:'debit'}),/finance-card--bbva/);
   const fs=require('node:fs'), path=require('node:path');
-  for(const name of ['inbursa','mercado-pago','nu','bbva','revolut','bdesa']){
+  for(const name of ['inbursa','mercado-pago','nu','bbva','revolut']){
     const file=path.join(__dirname,'cards','banks',name+'.css');
     assert.ok(fs.existsSync(file),'Falta archivo de diseño '+name);
     assert.match(fs.readFileSync(file,'utf8'),new RegExp('finance-card--'+name));
@@ -28,6 +28,20 @@ const {prepare}=require('./card-images.js');
   const page=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
   assert.ok(page.includes('cards/banks/mercado-pago.css'));
   assert.ok(page.includes('cards/banks/revolut.css'));
+  assert.equal(Card.institution('BDESA'),'general');
+  const mpCss=fs.readFileSync(path.join(__dirname,'cards','banks','mercado-pago.css'),'utf8');
+  assert.match(mpCss,/EXACTLY the same chip/);
+  assert.equal(mpCss.split('.finance-card--mercado-pago .fc-chip{').length-1,1);
+  assert.equal(mpCss.split('.finance-card--mercado-pago.finance-card--credit .fc-chip{').length-1,0);
+  const bbvaCss=fs.readFileSync(path.join(__dirname,'cards','banks','bbva.css'),'utf8');
+  assert.ok(bbvaCss.includes('.fc-art__bbva-a::before'));
+  assert.ok(bbvaCss.includes('.fc-art__bbva-a::after'));
+  const nuCss=fs.readFileSync(path.join(__dirname,'cards','banks','nu.css'),'utf8');
+  assert.ok(nuCss.includes('mask-image'));
+  assert.ok(nuCss.includes('finance-card--debit'));
+  assert.ok(nuCss.includes('finance-card--credit'));
+  assert.ok(!page.includes('cards/banks/bdesa.css'));
+  assert.ok(!fs.readFileSync(path.join(__dirname,'cards-preview.html'),'utf8').includes('BDESA'));
   assert.ok(!html.includes('<img src=x'));
   assert.ok(html.includes('&lt;img'));
   const raw=CSV.format([{nombre:'Inbursa Nómina',institucion:'Inbursa',tipo:'debito',diseno:'auto'}],

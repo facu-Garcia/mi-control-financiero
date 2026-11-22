@@ -16,11 +16,10 @@
     if(s.includes('inbursa'))return 'inbursa';
     if(s.includes('bbva'))return 'bbva';
     if(s.includes('revolut'))return 'revolut';
-    if(s.includes('bdesa'))return 'bdesa';
     return 'general';
   }
   function titleFor(key,account){
-    return ({'mercado-pago':'mercado pago',nu:'nu',inbursa:'INBURSA',bbva:'BBVA',revolut:'Revolut',bdesa:'BDESA',general:String(account?.institution||'MI TARJETA').slice(0,22).toUpperCase()})[key];
+    return ({'mercado-pago':'mercado pago',nu:'nu',inbursa:'INBURSA',bbva:'BBVA',revolut:'Revolut',general:String(account?.institution||'MI TARJETA').slice(0,22).toUpperCase()})[key];
   }
   function styleOf(value){return STYLES.includes(value)?value:'auto';}
   function isCard(account){return !!account&&['debit','credit'].includes(account.type);}

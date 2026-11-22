@@ -1,3 +1,15 @@
+# Mi Control Financiero · PWA v0.3.2
+
+### Correcciones por institución
+- Mercado Pago: chip y NFC alineados entre débito y crédito.
+- BBVA: marca geométrica del fondo refinada con trazos CSS.
+- Nu: dos gradientes morados más saturados y pequeña muesca lateral.
+- BDESA: retirado del catálogo y del nuevo CSV de importación.
+
+**Seguridad de datos:** actualizar código no elimina cuentas locales. Si previamente importaste BDESA por error, revisa primero si tiene movimientos y elimínala manualmente desde la aplicación. No borres los datos del navegador para quitarla.
+
+---
+
 # Mi Control Financiero · PWA v0.3.1
 
 ## Diseños bancarios por archivo
@@ -9,7 +21,6 @@
 - `cards/banks/nu.css`: Nu Débito y Crédito
 - `cards/banks/bbva.css`: BBVA
 - `cards/banks/revolut.css`: Revolut
-- `cards/banks/bdesa.css`: provisional hasta identificar la institución
 
 Los bancos pueden modificarse de forma independiente; al publicar hay que actualizar la versión de caché en `sw.js` y la referencia CSS en `index.html` para que Android obtenga los cambios. Ningún archivo CSS contiene saldos, contraseñas ni movimientos personales.
 
