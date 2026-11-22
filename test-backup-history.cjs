@@ -1,7 +1,8 @@
 const assert=require('node:assert/strict');
 const {webcrypto}=require('node:crypto');
 global.crypto=webcrypto;
-global.navigator={onLine:true};
+if(!global.navigator)global.navigator={};
+Object.defineProperty(global.navigator,'onLine',{value:true,configurable:true});
 const Drive=require('./drive-sync.js');
 const Backup=require('./features/backup/backup-model.js');
 const F=require('./logic.js');
