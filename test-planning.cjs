@@ -55,7 +55,7 @@ assert.equal(Planning.monthEnd('2028-02'),'2028-02-29');
 assert.equal(Planning.plusDays('2026-12-31',1),'2027-01-01');
 const twoMonthRule={...rule,startDate:'2026-12-01',day:4};
 assert.equal(Planning.capacity({...data,recurrences:[twoMonthRule]},deps,now).recurringDue,5000);
-const later=Planning.capacity({...data,recurrences:[{...rule,startDate:'2027-01-01'}]},deps,now,90);
+const later=Planning.capacity({...data,recurrences:[{...rule,day:4,startDate:'2027-01-01'}]},deps,now,90);
 assert.equal(later.recurringDue,10000,'90-day horizon traverses intervening months');
 const lack=Planning.capacity({...data,accounts:[bank,{...card,dueDay:0}]},deps,now);
 assert.ok(lack.warnings.some(x=>x.includes('sin fecha')));
