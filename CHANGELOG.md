@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## [0.4.1] - 2026-11-21
+
+### Corregido
+- La conciliación bancaria ahora calcula el saldo esperado a la fecha que se eligió y no siempre con el saldo actual.
+- Evitar conciliaciones con fecha anterior al saldo inicial o posterior a hoy.
+- Actualizar el importe esperado en el formulario cuando cambie la fecha.
+
+
 ## [0.4.0] - 2026-11-21
 
 ### Nuevas funciones

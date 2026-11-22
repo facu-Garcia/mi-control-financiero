@@ -209,11 +209,19 @@
     if(!a)return;
     const expected=F.accountBalance(a,state.movements);
     openModal('Conciliación bancaria',Forms.reconcileForm(a,expected,money,val,esc,localDate()));
+    document.querySelector('#reconcile-form [name="date"]').addEventListener('change',e=>{
+      const day=e.target.value;
+      const text=document.getElementById('reconcile-expected');
+      if(text)text.textContent=day<a.balanceDate?'Anterior a la fecha base':money(F.accountBalance(a,state.movements.filter(m=>m.date<=day)));
+    });
     document.getElementById('reconcile-form').addEventListener('submit',async e=>{
       e.preventDefault();try{
-        const f=e.currentTarget,actual=cents(f.elements.actual.value);
+        const f=e.currentTarget,actual=cents(f.elements.actual.value),checkDate=f.elements.date.value;
         if(!Number.isSafeInteger(actual))throw Error('Saldo real inválido.');
-        await save('reconciliations',{id:id(),accountId:a.id,date:f.elements.date.value,expected,actual,difference:actual-expected,note:f.elements.note.value.trim(),createdAt:new Date().toISOString()});
+        if(checkDate<a.balanceDate)throw Error('No puedes conciliar una fecha anterior al saldo inicial de esta cuenta.');
+        if(checkDate>localDate())throw Error('La fecha de conciliación no puede estar en el futuro.');
+        const expectedAtDate=F.accountBalance(a,state.movements.filter(m=>m.date<=checkDate));
+        await save('reconciliations',{id:id(),accountId:a.id,date:checkDate,expected:expectedAtDate,actual,difference:actual-expectedAtDate,note:f.elements.note.value.trim(),createdAt:new Date().toISOString()});
         closeModal();notify('Comparación guardada sin modificar tu saldo.');
       }catch(err){notify(err.message);}
     });

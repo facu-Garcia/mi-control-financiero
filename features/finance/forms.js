@@ -21,7 +21,7 @@
   }
   function reconcileForm(account,expected,money,format,esc,date){
     return `<form id="reconcile-form" class="form"><p>Cuenta: <b>${esc(account.name)}</b></p>
-    <p>Saldo estimado de la aplicación: <b>${money(expected)}</b></p>
+    <p>Saldo estimado de la aplicación a la fecha indicada: <b id="reconcile-expected">${money(expected)}</b></p>
     <div class="field"><label>Saldo real mostrado por el banco ($)</label><input name="actual" type="number" step=".01" required value="${format(expected)}"></div>
     <div class="field"><label>Fecha de verificación</label><input name="date" type="date" required value="${date}"></div>
     <div class="field"><label>Nota (opcional)</label><input name="note" maxlength="150" placeholder="Revisé el saldo en la app bancaria"></div>
