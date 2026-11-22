@@ -1,5 +1,19 @@
 # Historial de cambios
 
+## [0.2.4] - 2026-11-21
+
+### Corregido
+- Diagnosticar exactamente por qué falla la apertura de IndexedDB, sin borrar registros.
+- Detectar bloqueos de actualización por otras pestañas y liberar la conexión al cambiar la versión.
+- Mostrar el estado del almacenamiento local en Ajustes y ofrecer un botón seguro de comprobación/reintento.
+- Evitar la autorización de Drive hasta confirmar que el almacenamiento local está listo.
+- Añadir un tiempo límite para aperturas bloqueadas y permitir reintentar.
+- Renovar recursos de caché para evitar scripts de distintas versiones.
+
+### Pruebas
+- Comprobar apertura y cierre de IndexedDB y casos de bloqueo mediante pruebas automatizadas.
+
+
 ## [0.2.3] - 2026-11-21
 
 ### Corregido

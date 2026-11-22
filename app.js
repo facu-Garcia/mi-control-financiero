@@ -4,6 +4,7 @@
   const F = window.Finance;
   const CSV = window.FinanceCSV;
   const G = window.FinanceDrive;
+  const S = window.FinanceStorage;
   const DB_NAME = 'mi-control-financiero-db';
   const DB_VERSION = 2;
   const accountTypes = {debit:'Cuenta de débito',credit:'Tarjeta de crédito',cash:'Efectivo',saving:'Ahorro',pocket:'Cajita / apartado'};
@@ -21,6 +22,9 @@
   let state = {accounts:[],movements:[],budgets:[],settings:{salary:0,savingsTarget:0}};
   let drive;
   let driveInitError = '';
+  let localInitError = '';
+  let localInitStatus = 'iniciando';
+  let localInitTask;
   let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null;
 
   function localDate(offset=0){const d=new Date(); d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -47,7 +51,37 @@
   }
   function request(store,method,arg){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const req=tx.objectStore(store)[method](arg);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
   function mutate(store,kind,entry){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);const target=tx.objectStore(store);if(kind==='put')target.put(entry);else if(kind==='delete')target.delete(entry);});}
-  function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;for(const s of ['accounts','movements','settings','budgets'])if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+  function storageMessage(){
+    if(localInitStatus==='listo'&&db)return 'Base de datos local lista. Tus registros permanecen en este dispositivo.';
+    if(localInitStatus==='iniciando')return 'Abriendo almacenamiento local…';
+    return localInitError||'Almacenamiento local pendiente de comprobar.';
+  }
+  function refreshStorageMessage(){
+    const node=document.getElementById('storage-diagnostic');
+    if(node)node.textContent=storageMessage();
+  }
+  function openDb(){
+    if(!S?.openDatabase)throw Error('No se cargó el módulo de almacenamiento. Recarga la aplicación desde Chrome.');
+    return S.openDatabase(DB_NAME,DB_VERSION,{
+      onBlocked:()=>{
+        localInitStatus='bloqueado';
+        localInitError='Otra pestaña o versión mantiene abierta la base de datos. Cierra otras pestañas de esta PWA sin borrar los datos.';
+        refreshStorageMessage();
+      },
+      onVersionChange:()=>{
+        db=null;localInitStatus='requiere-recarga';
+        localInitError='La base de datos necesita actualizarse. Cierra las otras pestañas y vuelve a entrar.';
+        refreshStorageMessage();
+      }
+    });
+  }
+  async function retryLocal(){
+    if(localInitStatus==='listo'&&db){notify('Almacenamiento local disponible.');return;}
+    if(localInitStatus==='iniciando'&&localInitTask)await localInitTask;
+    if(localInitStatus!=='listo'||!db){localInitTask=init();await localInitTask;}
+    if(localInitStatus!=='listo'||!db)throw Error(localInitError||'No se pudo abrir IndexedDB.');
+    notify('Base de datos local recuperada. Ya puedes intentar conectar Google Drive.');
+  }
   async function reload(){const [accounts,movements,budgets,settings]=await Promise.all([request('accounts','getAll'),request('movements','getAll'),request('budgets','getAll'),request('settings','get','preferences')]);state={accounts,movements,budgets,settings:settings||{id:'preferences',salary:0,savingsTarget:0}};render();}
   async function save(store,entry){await mutate(store,'put',entry);await reload();afterChange();}
   async function remove(store,identifier){await mutate(store,'delete',identifier);await reload();afterChange();}
@@ -263,7 +297,7 @@
     if(connectButton){connectButton.disabled=true;connectButton.textContent='Conectando con Google…';}
     show('Solicitando autorización de Google. Si no aparece una ventana, abre este sitio directamente en Chrome.');
     try{
-    if(!db)throw Error('No se abrió la base de datos local. Comprueba que Chrome permita almacenamiento y recarga la página antes de conectar Drive.');
+    if(localInitStatus!=='listo'||!db)throw Error('Google Drive necesita que primero funcione el almacenamiento local. '+storageMessage()+' Pulsa «Comprobar almacenamiento» en Ajustes.');
     const connection=ensureDrive();
     const result=await connection.connect(clientId,passphrase);
     if(result.status==='conflict'){
@@ -289,6 +323,7 @@
       <div class="divider"></div><div class="section-title"><h2>Seguridad y archivos</h2></div>
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
+      <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
       <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
@@ -359,6 +394,7 @@
       case 'drive-sync':if(!drive?.ready)notify('Conecta Google Drive desde Ajustes.');else {drive.dirty=true;await drive.sync();}break;
       case 'drive-reconnect':settingsModal();notify('Escribe nuevamente la contraseña de cifrado para reconectar.');break;
       case 'request-persistence':await askPersist();break;
+      case 'storage-retry':await retryLocal();refreshStorageMessage();break;
     }}catch(err){notify(err.message||'Ocurrió un error');}
   });
   document.getElementById('fab-add').addEventListener('click',movementForm);
@@ -369,20 +405,28 @@
   document.getElementById('modal').addEventListener('click',e=>{if(e.target===modal)closeModal();});
   main.addEventListener('change',e=>{if(e.target.id==='month-control'&&/^\d{4}-\d{2}$/.test(e.target.value)){selectedMonth=e.target.value;render();}});
   async function init(){
+    localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceCSV)throw Error('No se cargó la aplicación completa. Abre el sitio desde Chrome y recarga.');
-      db=await openDb();
+      if(!window.Finance||!window.FinanceCSV||!window.FinanceStorage){
+        const missing=['Finance','FinanceCSV','FinanceStorage'].filter(name=>!window[name]).join(', ');
+        throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
+      }
+      if(!db)db=await openDb();
       await reload();
+      localInitStatus='listo';localInitError='';refreshStorageMessage();
+      document.getElementById('fab-add').disabled=false;
     }catch(err){
-      driveInitError='La base local no inició: '+(err?.message||'error desconocido');
-      main.innerHTML=`<div class="panel"><h2>No se pudo iniciar la aplicación</h2><p>No se han borrado tus datos. Abre esta dirección directamente en Chrome, sin modo incógnito, y recarga.</p><p class="help">${esc(driveInitError)}</p></div>`;
+      localInitStatus='error';
+      localInitError='La base local no inició: '+(err?.message||'error desconocido');
+      main.innerHTML=`<div class="panel"><h2>No se pudo iniciar la aplicación</h2><p>No se han borrado los datos. Revisa el diagnóstico de Ajustes y cierra otras pestañas de la PWA antes de reintentar.</p><p class="help">${esc(localInitError)}</p></div>`;
       document.getElementById('fab-add').disabled=true;
-      document.getElementById('cloud-chip').textContent='☁ No disponible';
+      document.getElementById('cloud-chip').textContent='☁ Pendiente';
+      refreshStorageMessage();
       return;
     }
-    // Google Drive es opcional: un fallo en su script o almacenamiento no debe bloquear las cuentas locales.
+    // Google Drive es opcional y no debe bloquear la base local.
     try{ensureDrive();}catch(err){console.warn('Google Drive no disponible:',err?.message||err);}
     if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
-  init();
+  localInitTask=init();
 })();

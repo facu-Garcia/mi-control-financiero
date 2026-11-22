@@ -19,6 +19,9 @@ Los estados de cuenta en PDF no se procesan automáticamente. Convierte sus tran
 
 ## Google Drive cifrado
 
+**Si muestra «No se abrió la base de datos local»:** primero entra en Ajustes → Almacenamiento local → **Comprobar almacenamiento sin borrar datos**. El diagnóstico ahora explica si IndexedDB está bloqueado por otra pestaña, si fallaron scripts o si el navegador rechazó la apertura. Cierra otras pestañas/instancias de la PWA y reintenta sin borrar la información. No desinstales ni borres datos del sitio sin un respaldo.
+
+
 **Solución al error «Cannot read properties of undefined (reading 'connect')»:** actualizar a la v0.2.3, cargar la PWA directamente en Chrome y recargar. Si el componente de Drive no se carga, la aplicación seguirá permitiendo registrar gastos localmente y mostrará un error recuperable. Nunca borres los datos del sitio para forzar una actualización sin exportar primero un respaldo.
 
 
