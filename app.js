@@ -21,6 +21,8 @@
   const PocketViews = window.FinancePocketsViews;
   const AccountPage = window.FinanceAccountPage;
   const CreditRow = window.FinanceCreditRow;
+  const Planning = window.FinancePlanning;
+  const PlanningView = window.FinancePlanningView;
   const DB_NAME = 'mi-control-financiero-db';
   const DB_VERSION = 6;
   const accountTypes = {debit:'Cuenta de débito',credit:'Tarjeta de crédito',cash:'Efectivo',saving:'Ahorro',pocket:'Cajita / apartado'};
@@ -145,7 +147,15 @@
      ${sectionTitle('Tarjetas de crédito','goto-accounts','Ver tarjetas')}
      ${creditCards(cards.slice(0,3))}
     ${sectionTitle('Movimientos del periodo','goto-movements','Ver todos')}<div class="panel">${txList(tx.slice(0,5))}</div>
+    <div class="toolbar" style="margin-top:14px"><button class="secondary full" data-action="open-planning">▦ Ver calendario financiero y capacidad de pago</button></div>
     <p class="footnote">El saldo es una estimación basada en los saldos iniciales y movimientos registrados. Los cargos del corte no equivalen necesariamente al pago exigible por el banco.</p>`;
+  }
+  function renderPlanning(){
+    const context={F,Billing,Payroll,Rec,Pockets};
+    const today=localDate();
+    const events=Planning.calendar(state,context,selectedMonth,today);
+    const capacity=Planning.capacity(state,context,today,30);
+    main.innerHTML=PlanningView.render(events,capacity,selectedMonth,{esc,money,monthName});
   }
   function renderAccounts(){
     const assets=state.accounts.filter(a=>a.type!=='credit'),cards=state.accounts.filter(a=>a.type==='credit');
@@ -182,6 +192,7 @@
       <p class="footnote">Indicadores orientativos, no saldo disponible ni monto oficial por pagar. Pueden existir gastos aún no registrados.</p>
     </div>
     ${renderBudgetSummary()}
+    <div class="toolbar"><button class="secondary small" data-action="open-planning">▦ Calendario y capacidad de pago</button></div>
     <div class="toolbar"><button class="primary small" data-action="export-report">Exportar informe JSON</button><button class="secondary small" data-action="export-csv">Exportar CSV</button></div>
     <div class="inline-note">El gasto de una compra a MSI se registra íntegro en el mes financiero de la compra; los cargos a pagar se distribuyen en los meses de corte futuros. Por eso "compras" y "cargos de tarjetas" son indicadores distintos.</div>`;
   }
@@ -456,7 +467,7 @@
     enhanceAccountPickers(main);
   }
   function render(){document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='payroll')renderPayroll();else if(page==='billing')renderBilling();else if(page==='account')renderAccountPage();else if(page==='pocket')renderPocketPage();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else if(page==='insight')renderInsight();else if(page==='recurrences')renderRecurrences();else renderReports();
+    if(page==='home')renderHome();else if(page==='accounts')renderAccounts();else if(page==='payroll')renderPayroll();else if(page==='billing')renderBilling();else if(page==='account')renderAccountPage();else if(page==='pocket')renderPocketPage();else if(page==='movements')renderMovements();else if(page==='budgets')renderBudgets();else if(page==='insight')renderInsight();else if(page==='recurrences')renderRecurrences();else if(page==='planning')renderPlanning();else renderReports();
     enhanceAccountPickers(main);
   }
   function navigate(p){page=p;filter='all';render();window.scrollTo(0,0);}
@@ -656,7 +667,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button><button class="secondary small" data-action="drive-history">Historial de copias</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.9.2 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button><button class="secondary small" data-action="drive-history">Historial de copias</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.10.0 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -720,6 +731,8 @@
       case 'payroll-classify':payrollClassify(target.dataset.id);break;
       case 'open-insight':insightKind=target.dataset.kind||'wealth';insightAccount='all';navigate('insight');break;
       case 'back-home':navigate('home');break;
+      case 'open-planning':navigate('planning');break;
+      case 'goto-reports':navigate('reports');break;
       case 'open-recurring':navigate('recurrences');break;
       case 'show-audits':showAudits();break;
       case 'add-rec':recurrenceForm();break;
@@ -778,8 +791,8 @@
   async function init(){
     localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceBackupModel||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow){
-        const missing=['Finance','FinanceBackupModel','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow'].filter(name=>!window[name]).join(', ');
+      if(!window.Finance||!window.FinanceBackupModel||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow||!window.FinancePlanning||!window.FinancePlanningView){
+        const missing=['Finance','FinanceBackupModel','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow','FinancePlanning','FinancePlanningView'].filter(name=>!window[name]).join(', ');
         throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
       }
       if(!db)db=await openDb();
