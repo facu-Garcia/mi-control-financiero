@@ -19,6 +19,9 @@ Los estados de cuenta en PDF no se procesan automáticamente. Convierte sus tran
 
 ## Google Drive cifrado
 
+**Solución al error «Cannot read properties of undefined (reading 'connect')»:** actualizar a la v0.2.3, cargar la PWA directamente en Chrome y recargar. Si el componente de Drive no se carga, la aplicación seguirá permitiendo registrar gastos localmente y mostrará un error recuperable. Nunca borres los datos del sitio para forzar una actualización sin exportar primero un respaldo.
+
+
 Si pulsas **Conectar / recuperar Google Drive** y no aparece una ventana, utiliza Chrome directamente en `https://facu-garcia.github.io/mi-control-financiero/` (no el navegador integrado de otra app). La PWA muestra ahora el motivo del fallo dentro de Ajustes. Revisa que el Client ID esté completo, que su tipo sea **Web application**, que el origen autorizado sea `https://facu-garcia.github.io` y que Drive API esté habilitada. No compartas nunca el Client Secret.
 
 

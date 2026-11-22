@@ -20,6 +20,7 @@
   let db;
   let state = {accounts:[],movements:[],budgets:[],settings:{salary:0,savingsTarget:0}};
   let drive;
+  let driveInitError = '';
   let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null;
 
   function localDate(offset=0){const d=new Date(); d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -32,7 +33,7 @@
   function shortDate(s){const [y,m,d]=s.split('-');return `${d}/${m}/${y}`;}
   function getAccount(aid){return F.accountById(state.accounts,aid);}
   function badgeFor(a){const t=bankThemes[String(a.institution||'').toLowerCase().trim()]||{color:'#395e79',label:(a.institution||a.name||'CT').slice(0,2).toUpperCase()};return t;}
-  function cloudStatus(){return drive?.status||'Sin configurar';}
+  function cloudStatus(){return drive?.status||(driveInitError?'No disponible':'Sin configurar');}
   function snapshot(){return {schemaVersion:2,kind:'complete-backup',currency:'MXN',accounts:state.accounts,movements:state.movements,budgets:state.budgets,settings:state.settings};}
   function afterChange(){drive?.markChanged();}
   function sortTx(list){return [...list].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));}
@@ -228,6 +229,31 @@
       await reload();afterChange();notify(`Importados ${parsed.items.length} ${label}.`);
     }catch(err){notify(err.message||'No se pudo importar el CSV');}
   }
+  function ensureDrive(){
+    if(drive)return drive;
+    const Driver=window.FinanceDrive?.DriveSync;
+    if(typeof Driver!=='function'){
+      driveInitError='El módulo de Google Drive no se cargó. Comprueba que estés conectado a internet y recarga la página en Chrome.';
+      throw Error(driveInitError);
+    }
+    try{
+      const instance=new Driver({
+        getData:snapshot,
+        restore:async data=>{const x=validatedBackup(data);await replaceBackup(x);await reload();},
+        onStatus:status=>{
+          const node=document.getElementById('drive-status');if(node)node.textContent=status;
+          const chip=document.getElementById('cloud-chip');
+          if(chip)chip.textContent=status.startsWith('Sincronizado')?'☁ Guardado':status.startsWith('Desconectado')?'☁ Sin conectar':'☁ Pendiente';
+        }
+      });
+      drive=instance;driveInitError='';
+      return drive;
+    }catch(err){
+      driveInitError='No se pudo iniciar Google Drive: '+(err?.message||'error desconocido')+'. Recarga la PWA desde Chrome.';
+      document.getElementById('cloud-chip').textContent='☁ No disponible';
+      throw Error(driveInitError);
+    }
+  }
   async function startDrive(clientId,passphrase){
     const feedback=document.getElementById('drive-feedback');
     const connectButton=document.querySelector('#drive-form button[type="submit"]');
@@ -237,7 +263,9 @@
     if(connectButton){connectButton.disabled=true;connectButton.textContent='Conectando con Google…';}
     show('Solicitando autorización de Google. Si no aparece una ventana, abre este sitio directamente en Chrome.');
     try{
-    const result=await drive.connect(clientId,passphrase);
+    if(!db)throw Error('No se abrió la base de datos local. Comprueba que Chrome permita almacenamiento y recarga la página antes de conectar Drive.');
+    const connection=ensureDrive();
+    const result=await connection.connect(clientId,passphrase);
     if(result.status==='conflict'){
       const restore=confirm(`Drive tiene un respaldo del ${new Date(result.updatedAt).toLocaleString('es-MX')} diferente a los datos del celular.\nACEPTAR: recuperar el respaldo de Drive y REEMPLAZAR los datos locales.\nCANCELAR: conservar datos locales y dejar la sincronización pausada.`);
       if(restore){if(confirm('Se reemplazarán los datos locales. Recomendamos exportar un respaldo JSON primero. ¿Confirmas la restauración?')){await drive.acceptCloud(result.remote);notify('Datos recuperados de Google Drive');}}else{
@@ -261,7 +289,7 @@
       <div class="divider"></div><div class="section-title"><h2>Seguridad y archivos</h2></div>
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" hidden></p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.2 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -341,8 +369,20 @@
   document.getElementById('modal').addEventListener('click',e=>{if(e.target===modal)closeModal();});
   main.addEventListener('change',e=>{if(e.target.id==='month-control'&&/^\d{4}-\d{2}$/.test(e.target.value)){selectedMonth=e.target.value;render();}});
   async function init(){
-    try{db=await openDb();drive=new G.DriveSync({getData:snapshot,restore:async data=>{const x=validatedBackup(data);await replaceBackup(x);await reload();},onStatus:status=>{const node=document.getElementById('drive-status');if(node)node.textContent=status;const chip=document.getElementById('cloud-chip');if(chip)chip.textContent=status.startsWith('Sincronizado')?'☁ Guardado':status.startsWith('Desconectado')?'☁ Sin conectar':'☁ Pendiente';}});await reload();if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});}
-    catch(err){main.innerHTML=`<div class="panel"><h2>No se pudo abrir el almacenamiento</h2><p>Activa el almacenamiento local del navegador e inténtalo de nuevo. No utilices el modo incógnito para guardar tus finanzas.</p><p class="help">${esc(err.message)}</p></div>`;document.getElementById('fab-add').disabled=true;}
+    try{
+      if(!window.Finance||!window.FinanceCSV)throw Error('No se cargó la aplicación completa. Abre el sitio desde Chrome y recarga.');
+      db=await openDb();
+      await reload();
+    }catch(err){
+      driveInitError='La base local no inició: '+(err?.message||'error desconocido');
+      main.innerHTML=`<div class="panel"><h2>No se pudo iniciar la aplicación</h2><p>No se han borrado tus datos. Abre esta dirección directamente en Chrome, sin modo incógnito, y recarga.</p><p class="help">${esc(driveInitError)}</p></div>`;
+      document.getElementById('fab-add').disabled=true;
+      document.getElementById('cloud-chip').textContent='☁ No disponible';
+      return;
+    }
+    // Google Drive es opcional: un fallo en su script o almacenamiento no debe bloquear las cuentas locales.
+    try{ensureDrive();}catch(err){console.warn('Google Drive no disponible:',err?.message||err);}
+    if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
   init();
 })();

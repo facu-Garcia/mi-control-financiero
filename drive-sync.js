@@ -31,11 +31,12 @@
   class DriveSync {
     constructor({getData,restore,onStatus}){
       this.getData=getData;this.restore=restore;this.onStatus=onStatus;this.token='';this.password='';this.fileId=null;this.remoteRevision=null;
-      this.ready=false;this.dirty=false;this.running=false;this.timer=null;this.status='Desconectado';this.clientId=localStorage.getItem('mcf-drive-client-id')||'';
+      this.ready=false;this.dirty=false;this.running=false;this.timer=null;this.status='Desconectado';this.clientId='';
+      try{this.clientId=localStorage.getItem('mcf-drive-client-id')||'';}catch{/* El navegador puede restringir localStorage; Drive sigue funcionando por sesión. */}
       this.notify('Desconectado');window.addEventListener('online',()=>{if(this.ready&&this.dirty)this.schedule();});
     }
     notify(status){this.status=status;this.onStatus?.(status);}
-    config(id){if(!/^\d+-[\w-]+\.apps\.googleusercontent\.com$/.test(String(id||'').trim()))throw Error('Necesitas un ID OAuth de aplicación web válido.');this.clientId=String(id).trim();localStorage.setItem('mcf-drive-client-id',this.clientId);}
+    config(id){if(!/^\d+-[\w-]+\.apps\.googleusercontent\.com$/.test(String(id||'').trim()))throw Error('Necesitas un ID OAuth de aplicación web válido.');this.clientId=String(id).trim();try{localStorage.setItem('mcf-drive-client-id',this.clientId);}catch{/* Mantener ID sólo en memoria. */}}
     async request(url,options={}){
       if(!this.token)throw Error('Inicia sesión en Google Drive desde Ajustes.');
       const response=await fetch(url,{...options,headers:{Authorization:`Bearer ${this.token}`,...options.headers}});

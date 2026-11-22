@@ -1,5 +1,18 @@
 # Historial de cambios
 
+## [0.2.3] - 2026-11-21
+
+### Corregido
+- Evitar el error `Cannot read properties of undefined (reading 'connect')` al pulsar Conectar Google Drive cuando no se inicializó el módulo.
+- Inicializar el almacenamiento local independientemente del conector opcional de Google Drive; mostrar la causa real cuando falla.
+- Permitir volver a intentar inicializar el conector desde Ajustes sin perder datos.
+- Tolerar navegadores que bloquean `localStorage` y usar el Client ID durante la sesión.
+- Renovar versiones de los scripts y caché de la PWA para reducir mezclas entre versiones.
+
+### Pruebas
+- Ampliar prueba de Drive para un almacenamiento de preferencias restringido.
+
+
 ## [0.2.2] - 2026-11-21
 
 ### Corregido
