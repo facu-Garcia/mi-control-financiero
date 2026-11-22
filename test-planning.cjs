@@ -91,7 +91,7 @@ assert.match(decemberHtml,/7485.30/);
 const index=fs.readFileSync('./index.html','utf8'),app=fs.readFileSync('./app.js','utf8'),sw=fs.readFileSync('./sw.js','utf8');
 assert.ok(index.indexOf('planning.js')<index.indexOf('app.js?v='));
 assert.match(app,/Planning.monthlyObligations/);
-assert.match(app,/Versión 0\.11\.2/);
+assert.match(app,/Versión 0\.12\.0/);
 assert.match(sw,/planning\.js\?v=0\.11\.0/);
 assert.ok(app.includes("accountList(state.accounts.filter(a=>a.type!=='credit'&&a.balanceDate<=localDate()))"));
 assert.ok(!app.includes("accountList(state.accounts.filter(a=>a.type!=='credit').slice(0,4))"));
