@@ -1,3 +1,13 @@
+# Mi Control Financiero · v0.9.2 (propuesta en revisión)
+
+- Edición, confirmación, alta y baja de movimientos mediante transacciones atómicas; las auditorías se guardan en la misma transacción que el movimiento.
+- Bloqueo ante edición concurrente de un movimiento abierto con datos desactualizados.
+- Conciliación bancaria con captura manual obligatoria del saldo observado y revisión de hasta 20 registros previos por cuenta. Una conciliación se marca para revisión cuando movimientos posteriores cambian su saldo histórico esperado, sin reescribir la observación registrada.
+- Se mantiene IndexedDB v6 y el respaldo JSON v6; no se borran ni migran datos.
+- Pendientes: pruebas manuales de Android y Google Drive con datos ficticios, así como revisión específica del flujo de auditoría al restaurar.
+
+---
+
 # Mi Control Financiero · PWA v0.9.1 — Controladores de formularios
 
 ## Refactorización segura
