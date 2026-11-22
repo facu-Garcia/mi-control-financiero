@@ -1,3 +1,15 @@
+# Mi Control Financiero · v0.11.0 — Experiencia mensual
+
+- Inicio rediseñado con tres cifras prioritarias: dinero registrado, deuda total y patrimonio neto. Ahorro visible sin duplicarse en patrimonio.
+- Próximos vencimientos, actividad mensual y cinco o más cuentas desde el inicio.
+- Planear mi mes: ingresos efectivos, ingresos futuros previstos, compromisos abiertos, escenario de cierre y presupuestos. Compras del corte y pagos por fecha límite se mantienen diferenciados.
+- Los saldos del inicio no incluyen ingresos o pagos registrados con fecha posterior a hoy.
+- Acciones de registro directo, etiquetas de tarjeta que dicen «Registrar pago» y navegación a la planificación.
+- Funciones de conciliación y restauración se mantienen; sin migración de datos.
+- Toda cifra depende de registros locales y los importes de banco pueden requerir confirmación.
+
+---
+
 # Mi Control Financiero · v0.10.2 — Corte y vencimiento separados
 
 - Selector de mes legible en móvil: «nov 2026» en pantallas estrechas y mes completo en pantallas amplias.
