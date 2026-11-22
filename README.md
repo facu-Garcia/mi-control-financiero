@@ -1,3 +1,13 @@
+# Mi Control Financiero v0.10.0 — Calendario y capacidad financiera
+
+- Nuevo calendario financiero informativo desde **Resumen** y **Informes**; muestra cortes, pagos de tarjeta, suscripciones y nómina prevista por fecha.
+- Capacidad de pago conservadora de los próximos **30 días**: dinero en débito y efectivo a la fecha de hoy, menos cajitas reservadas, pagos exigibles con fecha conocida y cargos fijos todavía no confirmados.
+- No se cuentan sueldos futuros ni se suman nuevamente cuotas MSI de tarjetas cuando existen pagos de cortes pendientes; las fechas o deudas sin vencimiento conocido se advierten y no se consideran cubiertas.
+- Los eventos del calendario no alteran saldos. Las fechas de corte y nómina no oficiales se marcan como estimaciones.
+- Se conservan IndexedDB v6, respaldo JSON v6, Google Drive y la instalación Android sin migración.
+
+---
+
 # Mi Control Financiero · v0.9.2 (propuesta en revisión)
 
 - Edición, confirmación, alta y baja de movimientos mediante transacciones atómicas; las auditorías se guardan en la misma transacción que el movimiento.

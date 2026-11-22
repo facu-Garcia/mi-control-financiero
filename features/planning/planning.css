@@ -1,0 +1,17 @@
+/* Calendario financiero, diseño compacto para móvil */
+.planning-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.planning-capacity{display:flex;flex-direction:column;gap:4px;padding:6px 0 12px}
+.planning-capacity>strong{font-size:clamp(1.65rem,6vw,2.2rem);letter-spacing:-.04em}
+.planning-capacity small{font-size:.8rem}
+.planning-events{display:grid;gap:12px}
+.planning-day{padding:12px 14px;border:1px solid var(--border,#263243);border-radius:15px;background:var(--panel,#121b2a)}
+.planning-day h3{font-size:.87rem;letter-spacing:.02em;margin:0 0 10px;color:var(--muted,#a9b6ca)}
+.planning-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid rgba(160,180,208,.12)}
+.planning-entry-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.planning-entry-copy b{font-size:.93rem;overflow-wrap:anywhere}
+.planning-entry-copy small{font-size:.77rem;line-height:1.45;opacity:.76}
+.planning-entry strong{font-size:.94rem;white-space:nowrap}
+.planning-income strong{color:#67dec0}
+.planning-expense strong{color:#f3bf78}
+.planning-info strong{color:#aabbd0}
+@media(max-width:380px){.planning-entry{align-items:flex-start;flex-direction:column;gap:5px}.planning-entry strong{align-self:flex-end}}

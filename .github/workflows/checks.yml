@@ -25,6 +25,9 @@ jobs:
         run: |
           node --check logic.js
           node --check features/finance/insights.js
+          node --check features/planning/planning.js
+          node --check features/planning/planning-view.js
+          node --check test-planning.cjs
           node --check features/finance/recurring.js
           node --check features/payroll/payroll.js
           node --check features/payroll/payroll-view.js
@@ -63,6 +66,7 @@ jobs:
           node --check test-audit.cjs
       - name: Ejecutar pruebas financieras
         run: |
+          node test-planning.cjs
           node test-logic.cjs
           node test-csv.cjs
           node test-drive.cjs
