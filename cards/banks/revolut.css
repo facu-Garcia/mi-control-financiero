@@ -1,0 +1,9 @@
+/* Revolut México color-gradient card: magenta center-left, cobalt blue on right. */
+.finance-card--revolut{--card-a:#b22187;--card-b:#1648a6;--card-text:#fff;background:radial-gradient(ellipse 48% 90% at 34% 65%,#ed348b 5%,transparent 93%),radial-gradient(ellipse 43% 80% at 53% 23%,#a356d3 9%,transparent 91%),radial-gradient(ellipse 49% 87% at 90% 54%,#2452b7 5%,transparent 94%),linear-gradient(130deg,#a22e8a,#2248ab)}
+.finance-card--revolut::before{background:radial-gradient(ellipse at 14% 9%,#e6abff43,transparent 55%),linear-gradient(140deg,#ffffff16,transparent 52%,#06194628)}
+.finance-card--revolut .fc-brand{top:10%;left:6.5%}
+.finance-card--revolut .fc-brand-name{font-size:8.5cqw;font-weight:800;letter-spacing:-.055em}
+.finance-card--revolut .fc-chip{left:73%;top:45%;width:13%;height:22%;transform:rotate(0deg)}
+.finance-card--revolut .fc-contactless{left:87%;top:45%;height:18%;opacity:.85}
+.finance-card--revolut .fc-network{bottom:6%;right:5%}
+.finance-card--revolut .fc-type{left:7%;bottom:7%;opacity:.78;font-size:3cqw;text-transform:lowercase}

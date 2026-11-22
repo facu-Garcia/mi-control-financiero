@@ -1,0 +1,5 @@
+/* Provisional neutral BDESA style: bank/product name not yet verified.
+ * Isolated here so it can be replaced when the exact card model is confirmed. */
+.finance-card--bdesa{--card-a:#19646b;--card-b:#0b333b;background:linear-gradient(132deg,#27777d,#0b3746)}
+.finance-card--bdesa .fc-brand-name{letter-spacing:.04em;font-size:8cqw}
+.finance-card--bdesa .fc-art{background:radial-gradient(circle at 70% 50%,#ffffff21,transparent 50%),linear-gradient(130deg,transparent 55%,#ffffff12 55% 65%,transparent 67%)}

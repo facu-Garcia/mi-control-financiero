@@ -1,4 +1,5 @@
-/* Presentational card domain: bank identity, CSS themes, safe HTML. No real PAN/CVV. */
+/* Card view component: brand-specific appearance lives in cards/banks/*.css.
+ * No real card number, CVV or bank credentials are rendered or stored. */
 (function(root,factory){
   const m=factory();
   if(typeof module==='object'&&module.exports)module.exports=m;
@@ -22,26 +23,36 @@
     return ({'mercado-pago':'mercado pago',nu:'nu',inbursa:'INBURSA',bbva:'BBVA',revolut:'Revolut',bdesa:'BDESA',general:String(account?.institution||'MI TARJETA').slice(0,22).toUpperCase()})[key];
   }
   function styleOf(value){return STYLES.includes(value)?value:'auto';}
-  function isCard(account){return account&&['debit','credit'].includes(account.type);}
+  function isCard(account){return !!account&&['debit','credit'].includes(account.type);}
   function render(account){
     if(!isCard(account))return '';
-    const key=institution(account.institution||account.name);
-    const style=styleOf(account.cardStyle);
-    const credit=account.type==='credit';
-    const custom=safePicture(account.cardImage);
-    const typeLabel=credit?'CRÉDITO':'DÉBITO';
-    const name=String(account.name||'Mi tarjeta').slice(0,70);
-    const mark=titleFor(key,account);
-    return `<div class="finance-card finance-card--${key} finance-card--${style} ${credit?'finance-card--credit':'finance-card--debit'} ${custom?'finance-card--photo':''}" aria-label="${esc(name)} · ${typeLabel}">
-      ${custom?`<img class="finance-card__photo" src="${custom}" alt="" loading="lazy">`:''}
-      <span class="finance-card__pattern" aria-hidden="true"></span>
-      <span class="finance-card__top"><span class="finance-card__brand">${esc(mark)}</span><span class="finance-card__kind">${typeLabel}</span></span>
-      <span class="finance-card__middle" aria-hidden="true"><span class="finance-card__chip"><i></i></span><span class="finance-card__nfc">)))</span></span>
-      <span class="finance-card__bottom"><span class="finance-card__name">${esc(name)}</span><span class="finance-card__network">◉◉</span></span>
+    const bank=institution(account.institution||account.name),style=styleOf(account.cardStyle);
+    const credit=account.type==='credit',name=String(account.name||'Mi tarjeta').slice(0,70);
+    const custom=safePicture(account.cardImage),kind=credit?'CRÉDITO':'DÉBITO',mark=titleFor(bank,account);
+    const scheme=bank==='mercado-pago'?(credit?'visa':'mastercard'):
+      bank==='nu'||bank==='revolut'?'mastercard':
+      bank==='bbva'||bank==='inbursa'?'visa':'generic';
+    const brandIcon=bank==='inbursa'?'<span class="fc-brand-icon fc-brand-icon--inbursa"><i></i><i></i><i></i><i></i></span>':
+      bank==='mercado-pago'?'<span class="fc-brand-icon fc-brand-icon--mp"><i></i><i></i></span>':'';
+    const network=scheme==='mastercard'?'<span class="fc-network fc-network--mc" aria-hidden="true"><i></i><i></i></span>':
+      scheme==='visa'?'<span class="fc-network fc-network--visa" aria-hidden="true">VISA</span>':
+      '<span class="fc-network fc-network--generic" aria-hidden="true"></span>';
+    return `<div class="finance-card finance-card--${bank} finance-card--${style} finance-card--${credit?'credit':'debit'} ${custom?'finance-card--photo':''}" role="img" aria-label="${esc(name)}, ${kind}">
+      ${custom?`<img class="fc-photo" src="${custom}" alt="" loading="lazy">`:''}
+      <span class="fc-art" aria-hidden="true">
+        <span class="fc-art__mp-word">MER<br>CA<br>DO<br>PAGO</span>
+        <span class="fc-art__bbva-a"></span>
+        <span class="fc-art__inbursa-arc"></span>
+      </span>
+      <span class="fc-brand" aria-hidden="true">${brandIcon}<span class="fc-brand-name">${esc(mark)}</span></span>
+      <span class="fc-chip" aria-hidden="true"><i></i><b></b></span>
+      <span class="fc-contactless" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="fc-type">${kind}</span>${network}
+      <span class="fc-card-label" aria-hidden="true">${esc(name)}</span>
     </div>`;
   }
   function selector(value='auto'){
-    return `<div class="field"><label for="f-cardStyle">Apariencia de tarjeta</label><select id="f-cardStyle" name="cardStyle">${STYLES.map(v=>`<option value="${v}" ${styleOf(value)===v?'selected':''}>${LABELS[v]}</option>`).join('')}</select><small>Diseños ilustrativos en CSS; puedes modificarlos sin cambiar tus saldos.</small></div>`;
+    return `<div class="field"><label for="f-cardStyle">Apariencia de tarjeta</label><select id="f-cardStyle" name="cardStyle">${STYLES.map(v=>`<option value="${v}" ${styleOf(value)===v?'selected':''}>${LABELS[v]}</option>`).join('')}</select><small>Los diseños viven en CSS independiente por banco; también puedes subir una imagen.</small></div>`;
   }
   return {STYLES,LABELS,styleOf,institution,titleFor,render,selector,safePicture,isCard,esc};
 });

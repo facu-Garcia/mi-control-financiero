@@ -13,6 +13,21 @@ const {prepare}=require('./card-images.js');
   const html=Card.render(account);
   assert.match(html,/finance-card--nu/);
   assert.match(html,/CRÉDITO/);
+  assert.match(html,/fc-chip/);
+  assert.match(html,/fc-contactless/);
+  assert.match(html,/fc-network--mc/);
+  assert.match(Card.render({institution:'Mercado Pago',name:'Mi tarjeta',type:'credit'}),/fc-network--visa/);
+  assert.match(Card.render({institution:'Mercado Pago',name:'Mi tarjeta',type:'debit'}),/fc-network--mc/);
+  assert.match(Card.render({institution:'BBVA',name:'Mi cuenta',type:'debit'}),/finance-card--bbva/);
+  const fs=require('node:fs'), path=require('node:path');
+  for(const name of ['inbursa','mercado-pago','nu','bbva','revolut','bdesa']){
+    const file=path.join(__dirname,'cards','banks',name+'.css');
+    assert.ok(fs.existsSync(file),'Falta archivo de diseño '+name);
+    assert.match(fs.readFileSync(file,'utf8'),new RegExp('finance-card--'+name));
+  }
+  const page=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+  assert.ok(page.includes('cards/banks/mercado-pago.css'));
+  assert.ok(page.includes('cards/banks/revolut.css'));
   assert.ok(!html.includes('<img src=x'));
   assert.ok(html.includes('&lt;img'));
   const raw=CSV.format([{nombre:'Inbursa Nómina',institucion:'Inbursa',tipo:'debito',diseno:'auto'}],

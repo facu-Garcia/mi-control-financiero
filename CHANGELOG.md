@@ -1,5 +1,20 @@
 # Historial de cambios
 
+## [0.3.1] - 2026-11-21
+
+### Diseño
+- Recreación visual CSS más fiel de tarjetas Inbursa, Mercado Pago (débito Mastercard y crédito Visa), Nu (débito y crédito), BBVA y Revolut tomando como guía capturas del usuario y referencias públicas. Marcas/logotipos reconstruidos tipográficamente y elementos gráficos dibujados en CSS, no fotografías oficiales.
+- Separar cada diseño en `cards/banks/<banco>.css`. Mantener chip, NFC y redes de pago como elementos compartidos en `card-designs.css`.
+- Diferenciar expresamente débito/crédito y mostrar el nombre de la cuenta fuera de la cara de la tarjeta para mejorar la fidelidad.
+- Añadir `cards-preview.html` con ejemplos públicos sin datos personales para comparar diseños.
+- El diseño BDESA es provisional porque no se ha identificado el producto real exacto.
+
+### Ingeniería
+- La lógica financiera, almacenamiento, CSV y sincronización Drive no cambian.
+- Versionar recursos CSS/JS y renovar caché PWA.
+- Mantener personalización por imagen y estilo: los cambios visuales no alteran cuentas ni movimientos.
+
+
 ## [0.3.0] - 2026-11-21
 
 ### Añadido

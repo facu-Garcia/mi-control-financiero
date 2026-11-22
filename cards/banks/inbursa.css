@@ -1,0 +1,16 @@
+/* Inbursa debit: deep midnight navy, silver chip, corporate white mark and arced embossing. */
+.finance-card--inbursa{--card-a:#15223d;--card-b:#111a31;--card-text:#fff;background:radial-gradient(ellipse at 77% 58%,#2b4266 0%,#1b2b4b 33%,transparent 59%),linear-gradient(130deg,#22385d,#0f1a32 73%,#1a2541)}
+.finance-card--inbursa .fc-brand{top:9%;left:6%;gap:2cqw}
+.finance-card--inbursa .fc-brand-name{font-size:7.4cqw;font-weight:900;letter-spacing:-.035em}
+.fc-brand-icon--inbursa{width:9cqw;height:9cqw}
+.fc-brand-icon--inbursa i{position:absolute;width:40%;height:40%;border:1.5px solid #fff;background:#fff;border-radius:1px}
+.fc-brand-icon--inbursa i:nth-child(1){left:0;top:0}.fc-brand-icon--inbursa i:nth-child(2){right:0;top:0}
+.fc-brand-icon--inbursa i:nth-child(3){left:0;bottom:0}.fc-brand-icon--inbursa i:nth-child(4){right:0;bottom:0}
+.fc-brand-icon--inbursa::after{content:"";position:absolute;left:25%;top:25%;height:50%;width:50%;border-radius:50%;background:#d2d9e2;border:1px solid #2e4164}
+.finance-card--inbursa .fc-art__inbursa-arc{display:block;position:absolute;width:72%;height:118%;right:-4%;top:19%;border:1.4cqw solid #496c9335;border-radius:55% 15% 40% 65%;transform:rotate(26deg);box-shadow:-16px -14px 22px #0005,inset 12px 5px 14px #90aaca14}
+.finance-card--inbursa .fc-art__inbursa-arc::before{content:"";position:absolute;width:67%;height:90%;top:-14%;left:-43%;border-top:1.2cqw solid #4d729544;border-right:1.6cqw solid #0b14298a;transform:skew(-18deg) rotate(-9deg);box-shadow:6px 0 12px #8bb5e022}
+.finance-card--inbursa .fc-art__inbursa-arc::after{content:"";position:absolute;width:60%;height:34%;right:-3%;top:4%;border-top:1px solid #afcbe46b;transform:rotate(-19deg);border-radius:90%}
+.finance-card--inbursa .fc-chip{left:15%;top:40%;width:13%;height:21%}
+.finance-card--inbursa .fc-contactless{top:40%;left:4%}
+.finance-card--inbursa .fc-network{bottom:8%;right:6%}
+.finance-card--inbursa .fc-type{font-size:3cqw;left:6%;bottom:7%;opacity:.6}

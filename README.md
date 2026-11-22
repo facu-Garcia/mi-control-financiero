@@ -1,3 +1,22 @@
+# Mi Control Financiero · PWA v0.3.1
+
+## Diseños bancarios por archivo
+
+- `card-designs.js`: HTML reutilizable para las tarjetas, sin lógica financiera
+- `card-designs.css`: estructura compartida (chip, NFC, redes de pago)
+- `cards/banks/inbursa.css`: Inbursa
+- `cards/banks/mercado-pago.css`: Mercado Pago Débito y Crédito
+- `cards/banks/nu.css`: Nu Débito y Crédito
+- `cards/banks/bbva.css`: BBVA
+- `cards/banks/revolut.css`: Revolut
+- `cards/banks/bdesa.css`: provisional hasta identificar la institución
+
+Los bancos pueden modificarse de forma independiente; al publicar hay que actualizar la versión de caché en `sw.js` y la referencia CSS en `index.html` para que Android obtenga los cambios. Ningún archivo CSS contiene saldos, contraseñas ni movimientos personales.
+
+Ver [vista previa de tarjetas](cards-preview.html). Los logotipos son aproximaciones CSS/texto y **no implican respaldo o afiliación con los emisores**. Las variantes reales pueden cambiar por modelo, emisión y país. Las imágenes personalizadas se guardan localmente y en respaldo, no en el repositorio.
+
+---
+
 # Mi Control Financiero · PWA v0.3
 
 ## Arquitectura modular (JavaScript estático compatible con GitHub Pages)

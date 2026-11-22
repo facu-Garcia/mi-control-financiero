@@ -1,0 +1,12 @@
+/* BBVA turquoise Mexican debit reference with huge outline A watermark. */
+.finance-card--bbva{--card-a:#55d5d3;--card-b:#009daa;--card-text:#f9ffff;background:linear-gradient(117deg,#66dbdf 0%,#30bec5 46%,#0ca1ae 78%,#009aa9 100%)}
+.finance-card--bbva::before{background:radial-gradient(ellipse at 20% 6%,#ffffff48,transparent 55%),linear-gradient(110deg,#ffffff18,transparent 40%,#006f8f14)}
+.finance-card--bbva .fc-brand{top:9%;left:5%}
+.finance-card--bbva .fc-brand-name{font-family:Arial,Helvetica,sans-serif;font-size:11.1cqw;font-weight:500;letter-spacing:-.11em}
+.finance-card--bbva .fc-art__bbva-a{display:block;position:absolute;inset:0}
+.finance-card--bbva .fc-art__bbva-a::before{content:"A";position:absolute;left:32%;top:18%;font-family:Arial,Helvetica,sans-serif;font-size:72cqw;font-weight:200;line-height:.8;letter-spacing:-.18em;color:transparent;-webkit-text-stroke:1.3px #c7ffff55;transform:scaleX(.82);text-shadow:0 2px #1287980c}
+.finance-card--bbva .fc-art__bbva-a::after{content:"";position:absolute;left:32%;top:75%;width:45%;border-top:2px solid #048e9c28;transform:rotate(-4deg)}
+.finance-card--bbva .fc-chip{top:39%;left:11%;width:13%;height:22%}
+.finance-card--bbva .fc-contactless{left:3%;top:39%}
+.finance-card--bbva .fc-network{bottom:7%;right:5%;font-size:13cqw;font-weight:950}
+.finance-card--bbva .fc-type{left:auto;right:7%;bottom:1.6%;font-size:3.2cqw;opacity:.6;font-weight:600}

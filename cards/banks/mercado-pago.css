@@ -1,0 +1,22 @@
+/* Two distinct physical styles: very dark Mastercard debit and blue-black Visa credit.
+ * Large low-contrast typography emulates embossed oversized letterforms (not scanned artwork). */
+.finance-card--mercado-pago{--card-text:#eef3f7}
+.finance-card--mercado-pago.finance-card--debit{--card-a:#17212a;--card-b:#080e17;background:radial-gradient(ellipse at 44% 56%,#1f2b38,#0b121b 68%)}
+.finance-card--mercado-pago.finance-card--credit{--card-a:#132b3d;--card-b:#080f1e;background:radial-gradient(ellipse at 56% 60%,#164560,#091727 62%,#070e19)}
+.finance-card--mercado-pago .fc-art__mp-word{display:block;position:absolute;left:4%;top:2%;font-family:Arial Black,Impact,Arial,sans-serif;font-size:23cqw;line-height:.75;letter-spacing:-.095em;font-weight:1000;color:#66748039;text-shadow:1px 1px #060a1260;transform:scaleX(1.12);transform-origin:left top;user-select:none}
+.finance-card--mercado-pago.finance-card--credit .fc-art__mp-word{font-size:23.5cqw;top:4%;left:7%;color:#657a8730}
+.finance-card--mercado-pago .fc-brand{top:auto;bottom:9%;left:7%;gap:1.2cqw}
+.finance-card--mercado-pago .fc-brand-name{font-size:5cqw;line-height:.85;letter-spacing:-.09em;white-space:normal;width:29cqw}
+.fc-brand-icon--mp{width:12cqw;height:8cqw;border:1px solid #d9e3e9b9;transform:rotate(-20deg);border-radius:50%}
+.fc-brand-icon--mp::before,.fc-brand-icon--mp::after{content:"";position:absolute;display:block;background:#e8f0f49c;height:2px;width:46%;top:50%;transform:rotate(19deg)}
+.fc-brand-icon--mp::before{left:3%}.fc-brand-icon--mp::after{right:3%;transform:rotate(-20deg)}
+.finance-card--mercado-pago .fc-chip{top:27%;left:35%;width:13%;height:22%}
+.finance-card--mercado-pago .fc-contactless{top:18%;left:57%}
+.finance-card--mercado-pago .fc-network{right:6%;bottom:8%}
+.finance-card--mercado-pago.finance-card--credit .fc-type{left:auto;right:6%;bottom:3%;font-size:3cqw;color:#e8d29b;letter-spacing:.04em}
+.finance-card--mercado-pago.finance-card--debit .fc-type{left:auto;right:6%;bottom:26%;font-size:3cqw;font-weight:600;color:#afb9be}
+.finance-card--mercado-pago.finance-card--credit .fc-chip{top:16%;left:23%}
+.finance-card--mercado-pago.finance-card--credit .fc-contactless{top:14%;left:43%}
+.finance-card--mercado-pago.finance-card--credit .fc-brand{bottom:10%;left:6%;gap:2cqw}
+.finance-card--mercado-pago.finance-card--credit .fc-brand-name{font-size:5.5cqw;width:29cqw}
+.finance-card--mercado-pago.finance-card--credit .fc-network{bottom:10%;right:7%}
