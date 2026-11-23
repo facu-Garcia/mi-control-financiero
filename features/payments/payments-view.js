@@ -4,7 +4,7 @@
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;'}[c]));
 const categories=['Suscripciones','Entretenimiento','Servicios','Educación','Vivienda','Comida','Transporte','Compras','Otros'];
 function render(rules,movements,accounts,C,money,tab){
-  const group=rules.filter(r=>C.kind(r)===tab);
+  const group=rules.filter(r=>tab==='subscription'?C.kind(r)!=='frequent':C.kind(r)==='frequent');
   const tpl=C.suggested(rules,tab);
   const account=id=>accounts.find(a=>a.id===id)?.name||'Cuenta no configurada';
   function ruleCard(r){
