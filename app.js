@@ -9,6 +9,8 @@
   const Cards = window.FinanceCards;
   const CardImages = window.FinanceCardImages;
   const Rec = window.FinanceRecurring;
+  const PayCatalog = window.FinancePaymentCatalog;
+  const PayView = window.FinancePaymentsView;
   const Insight = window.FinanceInsights;
   const Dash = window.FinanceDashboard;
   const ReportModel=window.FinanceReportModel,ReportView=window.FinanceReportView;
@@ -45,7 +47,7 @@
   let localInitStatus = 'iniciando';
   let localInitTask;
   let generatingDue=false;
-  let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null, insightKind='wealth', insightAccount='all', selectedPayrollAccount='', selectedBillingCard='', selectedPocket='',reportTab='flow',reportRange=6,reportFocus='',reportCategory='',reportMetric='all';
+  let page = 'home', selectedMonth = localDate().slice(0,7), filter = 'all', selectedAccount = null, insightKind='wealth', insightAccount='all', selectedPayrollAccount='', selectedBillingCard='', selectedPocket='',paymentsTab='subscription',reportTab='flow',reportRange=6,reportFocus='',reportCategory='',reportMetric='all';
 
   function localDate(offset=0){const d=new Date(); d.setDate(d.getDate()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   function id(){return (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now()+'-'+Math.random().toString(36).slice(2));}
@@ -390,23 +392,77 @@
     });
   }
   function renderRecurrences(){
-    main.innerHTML=Forms.recurringPage(state.recurrences,state.movements,getAccount,money,esc,selectedMonth);
+    main.innerHTML=PayView.render(state.recurrences,state.movements,state.accounts,PayCatalog,money,paymentsTab);
   }
-  function recurrenceForm(existing=null){
-    if(!state.accounts.length){notify('Primero registra alguna cuenta.');return;}
-    openModal(existing?'Editar pago recurrente':'Nueva suscripción',Forms.recurringForm(state.accounts,existing,val,esc,localDate()));
-    document.getElementById('rec-form').addEventListener('submit',async e=>{
+  function templateById(templateId){
+    return PayCatalog.templates.find(t=>t.id===templateId)||null;
+  }
+  function recurrenceForm(existing=null,template=null){
+    const kind=existing?PayCatalog.kind(existing):template?.kind||paymentsTab;
+    if(!state.accounts.length){notify('Primero configura una cuenta o tarjeta para tus pagos.');return;}
+    const label=kind==='frequent'?'gasto frecuente':'suscripción';
+    openModal(existing?'Editar '+label:'Nuevo '+label,
+      PayView.form(state.accounts,existing,template,kind,val,localDate(),PayCatalog));
+    const f=document.getElementById('pay-rule-form');
+    f.addEventListener('submit',async e=>{
       e.preventDefault();
+      const button=f.querySelector('button[type="submit"]');button.disabled=true;
       try{
-        const f=e.currentTarget;
-        const r={id:existing?.id||id(),name:f.elements.name.value.trim(),amount:cents(f.elements.amount.value),
-          accountId:f.elements.accountId.value,day:Number(f.elements.day.value),category:f.elements.category.value,
-          startDate:f.elements.startDate.value,endDate:f.elements.endDate.value,paused:existing?.paused||false,frequency:'monthly'};
-        Rec.validate(r,state.accounts);
-        await save('recurrences',r);
-        await generateDueEntries();
-        closeModal();navigate('recurrences');notify('Suscripción guardada. Los cargos vencidos se preparan pendientes de confirmar.');
-      }catch(error){notify(error.message);}
+        const amount=cents(f.elements.amount.value),accountId=f.elements.accountId.value;
+        const name=f.elements.name.value.trim(),iconId=f.elements.iconId.value;
+        let iconImage=existing?.iconImage||'';
+        if(f.elements.removeImage?.checked)iconImage='';
+        const file=f.elements.iconFile.files?.[0];
+        if(file){
+          if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>80*1024)
+            throw Error('Utiliza una imagen PNG, JPG o WebP de hasta 80 KB.');
+          const bytes=new Uint8Array(await file.arrayBuffer());
+          let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
+          iconImage='data:'+file.type+';base64,'+btoa(binary);
+          if(!PayCatalog.safeImage(iconImage))throw Error('La imagen seleccionada no es válida.');
+        }
+        if(!existing&&state.recurrences.some(x=>PayCatalog.kind(x)===kind&&PayCatalog.normalize(x.name)===PayCatalog.normalize(name)))
+          throw Error('Ese servicio ya está configurado. Edita la tarjeta existente.');
+        const frequent=kind==='frequent';
+        const rule={...existing,id:existing?.id||id(),name,amount,accountId,
+          day:frequent?0:Number(f.elements.day.value),category:f.elements.category.value,
+          kind:frequent?'frequent':'subscription',frequency:frequent?'on-demand':'monthly',
+          serviceType:f.elements.serviceType.value.trim().slice(0,70),iconId,iconImage,
+          startDate:frequent?'':f.elements.startDate.value,endDate:frequent?'':f.elements.endDate.value,
+          paused:existing?.paused||false};
+        Rec.validate(rule,state.accounts);
+        await save('recurrences',rule);
+        if(!frequent)await generateDueEntries();
+        closeModal();paymentsTab=kind;navigate('recurrences');
+        notify(frequent?'Acceso rápido guardado: no se registró ningún gasto.':'Suscripción guardada. Los cobros generados esperan confirmación.');
+      }catch(error){notify(error.message||'No se pudo guardar el servicio.');}
+      finally{button.disabled=false;}
+    });
+  }
+  function quickFrequent(identifier){
+    const rule=state.recurrences.find(x=>x.id===identifier);
+    if(!rule||PayCatalog.kind(rule)!=='frequent'||rule.paused){notify('Este gasto frecuente no está disponible.');return;}
+    const account=getAccount(rule.accountId);
+    if(!account){notify('Primero corrige la cuenta asociada.');return;}
+    openModal('Registrar '+rule.name,PayView.quick(rule,account,money,val,localDate(),PayCatalog));
+    const f=document.getElementById('quick-frequent-form');
+    f.addEventListener('submit',async event=>{
+      event.preventDefault();
+      const button=f.querySelector('button[type="submit"]');button.disabled=true;
+      try{
+        const amount=cents(f.elements.amount.value),date=f.elements.date.value;
+        if(!Number.isSafeInteger(amount)||amount<=0)throw Error('El importe debe ser positivo.');
+        if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||date>localDate())throw Error('Selecciona una fecha válida, no futura.');
+        if(date<=account.balanceDate)throw Error('El gasto debe ser posterior a la fecha del saldo inicial de la cuenta.');
+        const movement={id:id(),type:'expense',date,accountId:account.id,toAccountId:'',
+          amount,months:1,category:rule.category||'Transporte',description:rule.name,
+          frequentId:rule.id,createdAt:new Date().toISOString()};
+        if(!confirm('¿Registrar '+money(amount)+' de '+rule.name+' en '+account.name+'? Esta operación afectará tus saldos.'))return;
+        await commitMovement(movement);
+        closeModal();paymentsTab='frequent';navigate('recurrences');
+        notify('Gasto registrado en tus movimientos.');
+      }catch(error){notify(error.message||'No se pudo registrar el gasto.');}
+      finally{button.disabled=false;}
     });
   }
   async function generateDueEntries(){
@@ -669,7 +725,7 @@
       <div class="stack"><button class="secondary full" data-action="import-accounts">Importar cuentas CSV</button><button class="secondary full" data-action="import-movements">Importar movimientos CSV</button><button class="secondary full" data-action="sample-accounts">Descargar plantilla de cuentas</button><button class="secondary full" data-action="export-accounts">Exportar mis cuentas CSV (sin imágenes)</button><button class="secondary full" data-action="sample-movements">Descargar plantilla de movimientos</button><button class="secondary full" data-action="export-backup">Exportar respaldo completo JSON</button><button class="secondary full" data-action="import-backup">Restaurar respaldo JSON</button><button class="secondary full" data-action="request-persistence">Solicitar almacenamiento persistente</button></div>
       <div class="inline-note" style="margin-top:14px">Los datos están guardados en este navegador, no en GitHub. El respaldo JSON de esta versión <b>no está cifrado</b>: guárdalo en un sitio privado y protegido. No subas respaldos ni estados de cuenta a un repositorio público.</div>
       <div class="divider"></div><h2>Almacenamiento local</h2><p id="storage-diagnostic" class="help" role="status">${esc(storageMessage())}</p><button type="button" class="secondary full" data-action="storage-retry">Comprobar almacenamiento sin borrar datos</button>
-      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button><button class="secondary small" data-action="drive-history">Historial de copias</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.12.0 · MXN · Uso personal</div>`);
+      <div class="divider"></div><h2>Google Drive cifrado</h2><p class="help">Estado: <b id="drive-status">${esc(cloudStatus())}</b>. Los cambios se sincronizan mientras la sesión de Google esté autorizada y haya conexión. Drive no sustituye copias de respaldo independientes.</p><p class="help"><a href="https://console.cloud.google.com/auth/overview/personal" target="_blank" rel="noopener noreferrer">Crear acceso gratuito en Google (Personal Mode)</a> · <a href="https://github.com/facu-Garcia/mi-control-financiero/blob/main/docs/GOOGLE_DRIVE.md" target="_blank" rel="noopener noreferrer">Ver instrucciones detalladas</a></p><form id="drive-form" class="form">${field('ID de cliente OAuth de Google','clientId','text',drive?.clientId||'','Lo creas en Google Cloud; es público y no es una contraseña.','autocomplete="off"')}${field('Contraseña de cifrado (mín. 12 caracteres)','passphrase','password','','No se guarda: la necesitarás para recuperar tus datos.','minlength="12" autocomplete="off"')}<button type="submit" class="primary full">Conectar / recuperar Google Drive</button><p id="drive-feedback" class="drive-feedback" role="status" aria-live="polite" ${driveInitError?'data-error="true"':''} ${driveInitError?'':'hidden'}>${esc(driveInitError)}</p></form><div class="toolbar"><button class="secondary small" data-action="drive-sync">Sincronizar ahora</button><button class="secondary small" data-action="drive-reconnect">Reconectar</button><button class="secondary small" data-action="drive-history">Historial de copias</button></div><div class="inline-note">Una PWA no puede sincronizarse mientras permanece cerrada. Si Google cierra la sesión, debes volver a autorizar. Nunca subas tus archivos privados a GitHub.</div><div class="divider"></div><div class="help">Versión 0.13.0 · MXN · Uso personal</div>`);
     document.getElementById('drive-form').addEventListener('submit',async e=>{e.preventDefault();await startDrive(e.currentTarget.elements.clientId.value,e.currentTarget.elements.passphrase.value);});
     document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{
       const f=e.currentTarget,salary=cents(f.elements.salary.value),savingsTarget=cents(f.elements.savingsTarget.value);
@@ -746,10 +802,13 @@
       case 'report-category':reportCategory=reportCategory===target.dataset.category?'':(target.dataset.category||'');renderReports();break;
       case 'report-metric':if(['all','assets','debts','netWorth'].includes(target.dataset.metric)){reportMetric=target.dataset.metric;renderReports();}break;
       case 'open-recurring':navigate('recurrences');break;
+      case 'payments-tab':if(['subscription','frequent'].includes(target.dataset.kind)){paymentsTab=target.dataset.kind;renderRecurrences();}break;
+      case 'add-template':{const template=templateById(target.dataset.id);if(template){paymentsTab=template.kind;recurrenceForm(null,template);}break;}
+      case 'quick-frequent':quickFrequent(target.dataset.id);break;
       case 'show-audits':showAudits();break;
       case 'add-rec':recurrenceForm();break;
       case 'edit-rec':recurrenceForm(state.recurrences.find(r=>r.id===target.dataset.id));break;
-      case 'toggle-rec':{const r=state.recurrences.find(x=>x.id===target.dataset.id);if(r){await save('recurrences',{...r,paused:!r.paused});notify(r.paused?'Pago recurrente activado':'Pago recurrente pausado');}break;}
+      case 'toggle-rec':{const r=state.recurrences.find(x=>x.id===target.dataset.id);if(r){await save('recurrences',{...r,paused:!r.paused});notify(r.paused?'Servicio activado':'Servicio pausado');}break;}
       case 'account-move':{const a=getAccount(target.dataset.id);closeModal();movementForm(a?.type==='credit'||a?.type==='debit'?a.id:'','expense');break;}
       case 'pay-card':{const a=getAccount(target.dataset.id);closeModal();movementForm('','payment',null,a?.id||'');break;}
       case 'back-account':accountDetail(target.dataset.id);break;
@@ -803,8 +862,8 @@
   async function init(){
     localInitStatus='iniciando';localInitError='';refreshStorageMessage();
     try{
-      if(!window.Finance||!window.FinanceBackupModel||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow||!window.FinancePlanning||!window.FinancePlanningView||!window.FinanceReportModel||!window.FinanceReportView){
-        const missing=['Finance','FinanceBackupModel','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow','FinancePlanning','FinancePlanningView','FinanceReportModel','FinanceReportView'].filter(name=>!window[name]).join(', ');
+      if(!window.Finance||!window.FinanceBackupModel||!window.FinanceCSV||!window.FinanceStorage||!window.FinanceCards||!window.FinanceCardImages||!window.FinanceAccountPicker||!window.FinancePayroll||!window.FinancePayrollViews||!window.FinanceBilling||!window.FinanceBillingViews||!window.FinancePockets||!window.FinancePocketsViews||!window.FinanceAccountPage||!window.FinanceCreditRow||!window.FinancePlanning||!window.FinancePlanningView||!window.FinanceReportModel||!window.FinanceReportView||!window.FinancePaymentCatalog||!window.FinancePaymentsView){
+        const missing=['Finance','FinanceBackupModel','FinanceCSV','FinanceStorage','FinanceCards','FinanceCardImages','FinanceAccountPicker','FinancePayroll','FinancePayrollViews','FinanceBilling','FinanceBillingViews','FinancePockets','FinancePocketsViews','FinanceAccountPage','FinanceCreditRow','FinancePlanning','FinancePlanningView','FinanceReportModel','FinanceReportView','FinancePaymentCatalog','FinancePaymentsView'].filter(name=>!window[name]).join(', ');
         throw Error('No se cargaron los archivos: '+missing+'. Reabre la aplicación en Chrome y actualiza la página.');
       }
       if(!db)db=await openDb();

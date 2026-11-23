@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## [0.13.0] - 2026-11-22
+- Separar suscripciones mensuales de gastos frecuentes manuales con tarjetas visuales, cuenta, precio, fecha y categoría.
+- Añadir las seis plantillas solicitadas sin crear movimientos ficticios ni duplicar reglas existentes.
+- Permitir iconos de catálogo e imágenes personalizadas válidas en respaldo JSON v6.
+- Añadir registro rápido de gasto frecuente con confirmación y pruebas de compatibilidad.
+
+
 ## [0.12.0] - 2026-11-22
 - Informes interactivos de ingresos/compras, categorías, patrimonio y crédito.
 - Filtros por periodo y cuenta, datos incompletos identificados y consultas por categoría.

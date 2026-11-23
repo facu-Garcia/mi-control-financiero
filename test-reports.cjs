@@ -77,5 +77,5 @@ assert.ok(index.indexOf('report-view.js')<index.indexOf('app.js?v='));
 assert.ok(sw.includes('report-model.js?v=0.12.0'));
 assert.match(app,/ReportModel\.assemble/);
 assert.match(app,/reportTab='flow'/);
-assert.match(app,/Versión 0\.12\.0/);
+assert.match(app,/Versión 0\.13\.0/);
 console.log('✓ Informes: ingresos vs compras, corte, crédito, pagos, patrimonio histórico, filtros, seguridad y PWA');

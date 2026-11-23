@@ -1,3 +1,16 @@
+# Mi Control Financiero v0.13.0 — Mis pagos
+
+- **Suscripciones** (Netflix, Spotify, Disney+) y **Gastos frecuentes** (Metro, Metrobús, Suburbano) son dos pestañas independientes.
+- Las seis opciones son **plantillas visuales**, sin alta automática de cobros, cuentas ni importes ficticios. Se activan al completar cuenta, monto y —para suscripciones— día de cobro.
+- Se conserva la suscripción mensual ya configurada por el usuario, con sus cargos históricos y pendientes intactos.
+- Suscripciones: cobro previsto cada mes, nunca afecta saldos mientras esté pendiente de confirmación bancaria.
+- Gastos frecuentes: no tienen vencimiento ni generan movimientos por día. El botón «Registrar gasto» pide importe, fecha y confirmación y escribe un único gasto real en la cuenta seleccionada.
+- Iconos locales predefinidos, catálogo de iconos, imagen propia PNG/JPEG/WebP menor de 80 KB, tipo y categoría editables.
+- Misma base IndexedDB versión 6 y respaldo JSON versión 6; el mismo almacén `recurrences` acepta la modalidad manual `frequency: on-demand`. El nuevo campo `frequentId` se conserva al restaurar.
+- No se guardan ni se solicitan datos sensibles de tarjetas. Recomendable exportar JSON privado antes de probar altas.
+
+---
+
 # Mi Control Financiero · v0.12.0 — Informes interactivos
 
 - Cuatro informes: Flujo, Gastos, Patrimonio y Crédito.
