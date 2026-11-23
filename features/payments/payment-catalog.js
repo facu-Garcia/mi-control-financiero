@@ -41,7 +41,7 @@
     return 'scheduled';
   }
   function suggested(list,tab){
-    const existing=new Set((list||[]).filter(r=>kind(r)===tab).map(r=>normalize(r.name)));
+    const existing=new Set((list||[]).map(r=>normalize(r.name)));
     return templates.filter(t=>t.kind===tab&&!existing.has(normalize(t.name)));
   }
   function safeImage(s){
